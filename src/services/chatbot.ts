@@ -1,7 +1,12 @@
 import { getEvolutionClient, EvolutionError } from '../lib/evolution.js';
 import { logger } from '../lib/logger.js';
 import { execute, query, queryOne } from '../lib/pg.js';
-import { isAcceptedJid, jidToLeadIdentifier, jidToSessionId } from '../lib/phone.js';
+import {
+  isAcceptedJid,
+  jidToLeadIdentifier,
+  jidToSessionId,
+  pickCanonicalJid,
+} from '../lib/phone.js';
 import { loadAgentConfig, resolveOpenAIKey, type AgentConfig } from './agent-config.js';
 import { runAgent } from './agent.js';
 import {
@@ -40,7 +45,14 @@ export interface EvolutionWebhookPayload {
   event?: string;
   instance?: string;
   data?: {
-    key?: { remoteJid?: string; fromMe?: boolean; id?: string };
+    key?: {
+      remoteJid?: string;
+      remoteJidAlt?: string;
+      addressingMode?: string;
+      fromMe?: boolean;
+      id?: string;
+      participant?: string;
+    };
     messageType?: string;
     message?: Record<string, unknown>;
     pushName?: string;
@@ -84,13 +96,13 @@ export async function handleEvolutionWebhook(
 
   if (data.key?.fromMe) return handleOutgoingMessage(data, instance);
 
-  const remoteJid = data.key?.remoteJid ?? '';
-  if (!remoteJid || !isAcceptedJid(remoteJid)) {
+  const canonicalJid = pickCanonicalJid(data.key?.remoteJid, data.key?.remoteJidAlt);
+  if (!canonicalJid || !isAcceptedJid(canonicalJid)) {
     return { status: 'ignored', reason: 'invalid_remote_jid' };
   }
 
-  const sessionId = jidToSessionId(remoteJid);
-  const phone = jidToLeadIdentifier(remoteJid);
+  const sessionId = jidToSessionId(canonicalJid);
+  const phone = jidToLeadIdentifier(canonicalJid);
   const evolutionMessageId = data.key?.id ?? null;
   const pushName = data.pushName ?? null;
 
@@ -153,8 +165,8 @@ async function handleOutgoingMessage(
   const evolutionMessageId = data.key?.id ?? null;
   if (!evolutionMessageId) return { status: 'ignored', reason: 'from_me_no_id' };
 
-  const remoteJid = data.key?.remoteJid ?? '';
-  if (!isAcceptedJid(remoteJid)) {
+  const canonicalJid = pickCanonicalJid(data.key?.remoteJid, data.key?.remoteJidAlt);
+  if (!isAcceptedJid(canonicalJid)) {
     return { status: 'ignored', reason: 'from_me_invalid_jid' };
   }
 
@@ -171,7 +183,7 @@ async function handleOutgoingMessage(
   const text = extractText(messageType, message);
   if (!text) return { status: 'ignored', reason: 'from_me_non_text' };
 
-  const sessionId = jidToSessionId(remoteJid);
+  const sessionId = jidToSessionId(canonicalJid);
 
   const pendingCutoff = new Date(Date.now() - 60_000).toISOString();
   const pendingMatch = await queryOne<{ id: string }>(

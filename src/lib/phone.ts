@@ -73,3 +73,24 @@ export function jidToLeadIdentifier(jid: string): string {
   }
   return jid;
 }
+
+/**
+ * Em contas Business novas (Multi-Device), Evolution v2.3.x entrega
+ * remoteJid em formato legado mas a identidade canônica do contato é @lid
+ * (campo remoteJidAlt). Send via JID legado falha com Baileys 1006.
+ *
+ * Esta função escolhe o JID "canônico" pra usar como sessionId E pra enviar:
+ *  - Se remoteJid já é @lid → usa ele
+ *  - Senão, se remoteJidAlt é @lid → usa o alt
+ *  - Senão, fica com remoteJid (legado puro)
+ */
+export function pickCanonicalJid(
+  remoteJid: string | undefined,
+  remoteJidAlt?: string | undefined,
+): string {
+  const primary = remoteJid ?? '';
+  const alt = remoteJidAlt ?? '';
+  if (primary.endsWith('@lid')) return primary;
+  if (alt.endsWith('@lid')) return alt;
+  return primary;
+}
