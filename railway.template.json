@@ -57,7 +57,7 @@
       "name": "Agente",
       "icon": "🤖",
       "source": {
-        "repo": "SUBSTITUIR_PELO_SEU_USUARIO/SUBSTITUIR_PELO_NOME_DO_REPO"
+        "repo": "orodrigobarcelos/agente-ia-whatsapp-imersao-sac"
       },
       "variables": {
         "NODE_ENV": "production",

@@ -16,16 +16,16 @@ O objetivo é transformar esse repo num **botão "Deploy on Railway"** que o alu
 
 ## Etapa 1 — Publica o repo no GitHub
 
-1. Crie um repo público no GitHub (ex: `agente-ia-whatsapp-simplificado`).
+1. Crie um repo público no GitHub (ex: `agente-ia-whatsapp-imersao-sac`).
 2. Faça commit/push dessa pasta inteira.
 3. **Importante:** confira que `.gitignore` está protegendo `.mcp.json`, `.env`, `.env.local`. Se você fez o teste com a `DATABASE_URL` real, **gire a senha agora** (Railway → Postgres → Variables → regenerate `POSTGRES_PASSWORD`).
 
 ```bash
-cd /Users/rodrigobarcelos/Documents/agente-ia-whatsapp-simplificado
+cd /Users/rodrigobarcelos/Documents/agente-ia-whatsapp-imersao-sac
 git init
 git add .
 git commit -m "feat: template simplificado v0.1"
-gh repo create agente-ia-whatsapp-simplificado --public --source=. --push
+gh repo create agente-ia-whatsapp-imersao-sac --public --source=. --push
 ```
 
 ---
@@ -44,7 +44,7 @@ Por:
 
 ```json
 "source": {
-  "repo": "orodrigobarcelos/agente-ia-whatsapp-simplificado"
+  "repo": "orodrigobarcelos/agente-ia-whatsapp-imersao-sac"
 }
 ```
 
@@ -59,7 +59,7 @@ Por:
 Antes de virar template, você precisa que **um projeto Railway funcional exista**. Faz assim:
 
 1. Em [railway.com](https://railway.com), clica **New Project**.
-2. **Deploy from GitHub repo** → seleciona `agente-ia-whatsapp-simplificado`.
+2. **Deploy from GitHub repo** → seleciona `agente-ia-whatsapp-imersao-sac`.
 3. Quando o serviço subir, **adiciona Postgres**: New → Database → Add PostgreSQL.
 4. **Adiciona Evolution**: New → Empty Service → Service Settings → Source: Docker Image → `atendai/evolution-api:v2.3.7` → Volume mount `/evolution/instances`.
 5. **Configura variáveis** copiando os valores do `railway.template.json` (campo a campo, manualmente — só dessa vez).
@@ -124,7 +124,7 @@ Commit + push.
 
 Aluno só precisa de **1 link**: a URL do GitHub do template.
 
-> "Vai aqui ó: https://github.com/orodrigobarcelos/agente-ia-whatsapp-simplificado — clica em **Code → Download ZIP**, extrai, abre no Claude Code, e diz 'vamos instalar esse agente'."
+> "Vai aqui ó: https://github.com/orodrigobarcelos/agente-ia-whatsapp-imersao-sac — clica em **Code → Download ZIP**, extrai, abre no Claude Code, e diz 'vamos instalar esse agente'."
 
 Pronto.
 
