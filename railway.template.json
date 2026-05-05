@@ -25,7 +25,7 @@
     {
       "name": "Evolution",
       "icon": "evolution-api",
-      "source": { "image": "atendai/evolution-api:v2.3.7" },
+      "source": { "image": "evoapicloud/evolution-api:v2.3.7" },
       "variables": {
         "SERVER_URL": "https://${{RAILWAY_PUBLIC_DOMAIN}}",
         "AUTHENTICATION_API_KEY": { "default": "$RANDOM_SECRET" },

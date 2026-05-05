@@ -61,7 +61,7 @@ Antes de virar template, você precisa que **um projeto Railway funcional exista
 1. Em [railway.com](https://railway.com), clica **New Project**.
 2. **Deploy from GitHub repo** → seleciona `agente-ia-whatsapp-imersao-sac`.
 3. Quando o serviço subir, **adiciona Postgres**: New → Database → Add PostgreSQL.
-4. **Adiciona Evolution**: New → Empty Service → Service Settings → Source: Docker Image → `atendai/evolution-api:v2.3.7` → Volume mount `/evolution/instances`.
+4. **Adiciona Evolution**: New → Empty Service → Service Settings → Source: Docker Image → `evoapicloud/evolution-api:v2.3.7` → Volume mount `/evolution/instances`.
 5. **Configura variáveis** copiando os valores do `railway.template.json` (campo a campo, manualmente — só dessa vez).
 6. **Conecta as referências cross-service**: no Agente, em DATABASE_URL, usa o autocomplete pra escolher `${{Postgres.DATABASE_URL}}`. Mesma coisa pra `EVOLUTION_API_KEY`, `EVOLUTION_URL`, `PUBLIC_URL`.
 7. Garante que tudo sobe: Postgres ✅ → Evolution ✅ → Agente ✅ (logs sem erro, `/health` retorna 200, `/qr` mostra a página).

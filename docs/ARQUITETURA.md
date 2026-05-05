@@ -63,7 +63,7 @@ Este documento existe pra quem quiser entender o que está rodando por baixo. **
 
 ### 2. Evolution API (Railway)
 
-**Imagem:** `atendai/evolution-api:v2.3.7`
+**Imagem:** `evoapicloud/evolution-api:v2.3.7`
 **Função:** ponte entre WhatsApp Web (Baileys) e nosso agente.
 **Webhook:** registrado automaticamente pelo agente no boot — aponta pra `${PUBLIC_URL}/webhooks/evolution` com eventos `MESSAGES_UPSERT` e `MESSAGES_UPDATE`.
 **Auth:** via `apikey` header. Key auto-gerada no deploy do template.
