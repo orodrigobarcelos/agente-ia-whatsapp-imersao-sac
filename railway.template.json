@@ -70,11 +70,7 @@
         "PUBLIC_URL": "https://${{RAILWAY_PUBLIC_DOMAIN}}",
         "OPENAI_API_KEY": {
           "default": "",
-          "description": "Cole aqui sua key da OpenAI (sk-...). Mínimo $5 de crédito na conta."
-        },
-        "AGENT_PROMPT_BOOTSTRAP": {
-          "default": "",
-          "description": "(Opcional) Prompt inicial do agente. Deixe vazio se for configurar depois via Claude Code + MCP Postgres."
+          "description": "Cole aqui sua key da OpenAI (sk-proj-...). Mínimo US$ 5 de crédito na conta."
         }
       }
     }
