@@ -144,6 +144,9 @@ export class EvolutionClient {
       'GET',
       `/instance/fetchInstances${qs}`,
     );
+    // Evolution v2.3.7 returns 404 when filtering by instanceName and the
+    // instance doesn't exist. Treat as empty list so callers can decide.
+    if (result.status === 404 && instanceName) return [];
     if (!result.ok) {
       throw new EvolutionError(
         `Evolution fetchInstances failed: ${result.status}`,

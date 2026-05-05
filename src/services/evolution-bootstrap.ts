@@ -89,9 +89,12 @@ export async function bootstrapEvolution(): Promise<EvolutionBootstrapResult | n
 
   const evolution = getEvolutionClient();
 
+  // Evolution v2.3.7 retorna 404 quando passamos ?instanceName=X e a instância
+  // não existe (em versões antigas retornava []). Pra não tropeçar nesse 404,
+  // listamos TODAS as instâncias sem filtro e procuramos a nossa localmente.
   let instances: EvolutionInstance[];
   try {
-    instances = await evolution.fetchInstances(instanceName);
+    instances = await evolution.fetchInstances();
   } catch (err) {
     logger.error(
       { err: err instanceof Error ? err.message : String(err) },
