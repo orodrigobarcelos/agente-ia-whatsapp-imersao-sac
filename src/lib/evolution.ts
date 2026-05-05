@@ -91,7 +91,10 @@ export class EvolutionClient {
     to: string,
     text: string,
   ): Promise<SendTextResult> {
-    const number = normalizePhone(to);
+    // Se 'to' já é um JID completo (`@s.whatsapp.net` ou `@lid`),
+    // passamos como está — Evolution roteia pra identidade certa.
+    // Senão, extraímos só os dígitos pra retrocompatibilidade.
+    const number = to.includes('@') ? to : normalizePhone(to);
     if (!number) throw new Error(`invalid phone: ${to}`);
 
     const result = await this.request<unknown>(
@@ -121,7 +124,7 @@ export class EvolutionClient {
     presence: EvolutionPresence,
     delayMs = 0,
   ): Promise<void> {
-    const number = normalizePhone(to);
+    const number = to.includes('@') ? to : normalizePhone(to);
     if (!number) throw new Error(`invalid phone: ${to}`);
 
     const result = await this.request(

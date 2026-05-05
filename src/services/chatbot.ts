@@ -1,7 +1,7 @@
 import { getEvolutionClient, EvolutionError } from '../lib/evolution.js';
 import { logger } from '../lib/logger.js';
 import { execute, query, queryOne } from '../lib/pg.js';
-import { phoneToSessionId } from '../lib/phone.js';
+import { isAcceptedJid, jidToLeadIdentifier, jidToSessionId } from '../lib/phone.js';
 import { loadAgentConfig, resolveOpenAIKey, type AgentConfig } from './agent-config.js';
 import { runAgent } from './agent.js';
 import {
@@ -85,12 +85,12 @@ export async function handleEvolutionWebhook(
   if (data.key?.fromMe) return handleOutgoingMessage(data, instance);
 
   const remoteJid = data.key?.remoteJid ?? '';
-  if (!remoteJid || !remoteJid.endsWith('@s.whatsapp.net')) {
+  if (!remoteJid || !isAcceptedJid(remoteJid)) {
     return { status: 'ignored', reason: 'invalid_remote_jid' };
   }
 
-  const phone = `+${remoteJid.replace('@s.whatsapp.net', '')}`;
-  const sessionId = phoneToSessionId(phone);
+  const sessionId = jidToSessionId(remoteJid);
+  const phone = jidToLeadIdentifier(remoteJid);
   const evolutionMessageId = data.key?.id ?? null;
   const pushName = data.pushName ?? null;
 
@@ -154,7 +154,7 @@ async function handleOutgoingMessage(
   if (!evolutionMessageId) return { status: 'ignored', reason: 'from_me_no_id' };
 
   const remoteJid = data.key?.remoteJid ?? '';
-  if (!remoteJid.endsWith('@s.whatsapp.net')) {
+  if (!isAcceptedJid(remoteJid)) {
     return { status: 'ignored', reason: 'from_me_invalid_jid' };
   }
 
@@ -171,7 +171,7 @@ async function handleOutgoingMessage(
   const text = extractText(messageType, message);
   if (!text) return { status: 'ignored', reason: 'from_me_non_text' };
 
-  const sessionId = phoneToSessionId(remoteJid.replace('@s.whatsapp.net', ''));
+  const sessionId = jidToSessionId(remoteJid);
 
   const pendingCutoff = new Date(Date.now() - 60_000).toISOString();
   const pendingMatch = await queryOne<{ id: string }>(
@@ -224,7 +224,7 @@ async function handleEditedMessage(
   instance: string,
 ): Promise<{ status: string; reason?: string }> {
   const remoteJid = data.remoteJid ?? '';
-  if (!remoteJid.endsWith('@s.whatsapp.net')) {
+  if (!isAcceptedJid(remoteJid)) {
     return { status: 'ignored', reason: 'edited_non_whatsapp_jid' };
   }
 
@@ -238,8 +238,8 @@ async function handleEditedMessage(
   }
   if (!newText) return { status: 'ignored', reason: 'edited_empty_content' };
 
-  const phone = `+${remoteJid.replace('@s.whatsapp.net', '')}`;
-  const sessionId = phoneToSessionId(phone);
+  const sessionId = jidToSessionId(remoteJid);
+  const phone = jidToLeadIdentifier(remoteJid);
   const evolutionMessageId = data.keyId ?? data.messageId ?? null;
   const text = `[Mensagem editada] ${newText}`;
 
