@@ -25,25 +25,51 @@ PASSO A PASSO
 2) Se eu não estiver logado: me peça pra logar (eu logo). Aguarde retornar logado.
 
 3) Quando aparecer a tela "Configure" do template:
-   - No campo OPENAI_API_KEY: cole exatamente "__OPENAI_KEY__".
-   - Em todos os outros campos: deixe os defaults.
+   - Encontra o card do serviço chamado "Agente" (ou "agente-ia-whatsapp-imersao-sac").
+   - No campo OPENAI_API_KEY desse card: cole exatamente "__OPENAI_KEY__".
+   - Em todos os outros campos/serviços (Postgres, Evolution): deixe os defaults.
+   - **Clica em "Save Config" DENTRO do card do Agente** (botão roxo no canto
+     direito do card). Sem isso, a key não é salva e o Deploy vai falhar.
+   - Confirma que apareceu "Ready to be deployed" no card do Agente.
 
-4) Clica em "Deploy" e me confirma que clicou.
+4) Clica no botão grande "Deploy" lá embaixo da tela e me confirma que clicou.
 
 5) Espera os 3 serviços subirem (Postgres → Evolution → Agente).
    Pode levar 3-5 minutos. Pergunte de tempos em tempos se quero aguardar mais.
-   Quando os 3 estiverem com status "Active" / "Running", siga.
+   Quando os 3 estiverem com status "Active" / "Online", siga.
 
-6) Vai no serviço "Postgres" → aba "Variables":
-   - Encontra DATABASE_PUBLIC_URL
-   - Clica no ícone de "olho" pra revelar a senha
-   - COPIA o valor completo (começa com postgresql://postgres:...)
-   - Guarda como POSTGRES_URL
+   IMPORTANTE: nesse momento o Railway redireciona pra um NOVO projeto (com nome
+   aleatório tipo "mindful-benevolence" ou "disciplined-education"). É NESSE
+   projeto novo que você vai trabalhar nos próximos passos — NÃO confunda com
+   outros projetos que eu já tenha na conta.
 
-7) Vai no serviço "Agente" → aba "Settings" → seção "Networking":
-   - Se não tiver domínio público gerado, clica "Generate Domain"
-   - COPIA a URL gerada (algo tipo https://agente-production-xxxx.up.railway.app)
-   - Guarda como AGENT_URL
+6) No projeto NOVO, clica no card do serviço "Postgres":
+   - Aba "Variables" (no topo).
+   - Clica em "{} Raw Editor" no canto direito superior da lista.
+   - Vai abrir um modal com TODAS as vars desofuscadas (sem asteriscos).
+   - Encontra a linha que começa com DATABASE_PUBLIC_URL=
+   - COPIA o valor completo dessa linha (começa com postgresql://postgres:... e
+     termina com /railway).
+   - Fecha o modal (botão Cancel ou X).
+   - Guarda esse valor como POSTGRES_URL.
+
+   ATENÇÃO: É DATABASE_PUBLIC_URL (com PUBLIC). NÃO é DATABASE_URL (sem PUBLIC) —
+   essa é a URL interna que NÃO funciona de fora da Railway.
+
+7) Volta pra visão do projeto. No projeto novo tem TRÊS serviços:
+     - Postgres (ícone do elefante azul)
+     - Evolution (ícone do logo Evolution verde)
+     - **Agente** (ícone do GitHub, com nome "agente-ia-whatsapp-imersao-sac")
+
+   Clica no terceiro — o do GitHub. NÃO é o Postgres, NÃO é o Evolution.
+
+   - O painel já abre na aba "Deployments".
+   - Logo abaixo do nome do serviço, no topo dessa aba, aparece a URL pública
+     já gerada (algo tipo https://agente-ia-whatsapp-imersao-sac-production-XXX.up.railway.app).
+   - COPIA essa URL pública.
+   - Guarda como AGENT_URL.
+
+   (Não precisa ir em Settings → Networking. A URL fica visível direto em Deployments.)
 
 8) Me devolve essas 2 URLs num bloco copiável EXATAMENTE neste formato (sem nada
    além disso, pra eu colar de uma vez):
@@ -58,6 +84,9 @@ REGRAS
 - Se o deploy travar com erro, copie a mensagem de erro e me mostre.
 - Não toque em outras configurações além das instruídas.
 - Se eu pedir pra parar a qualquer momento, pare.
+- Se cair em projeto errado (ex: um projeto antigo da minha conta), volta pro
+  projeto que foi criado AGORA pelo template — geralmente é o mais recente na
+  listagem do dashboard Railway.
 ```
 
 ---
