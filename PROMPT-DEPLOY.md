@@ -50,13 +50,18 @@ PASSO A PASSO
    - Encontra a linha que começa com DATABASE_PUBLIC_URL=
    - COPIA o valor completo dessa linha (começa com postgresql://postgres:... e
      termina com /railway).
-   - Fecha o modal (botão Cancel ou X).
+   - Fecha o modal Raw Editor (botão Cancel ou X do modal).
    - Guarda esse valor como POSTGRES_URL.
 
    ATENÇÃO: É DATABASE_PUBLIC_URL (com PUBLIC). NÃO é DATABASE_URL (sem PUBLIC) —
    essa é a URL interna que NÃO funciona de fora da Railway.
 
-7) Volta pra visão do projeto. No projeto novo tem TRÊS serviços:
+   AGORA, OBRIGATÓRIO: clica no X grande do canto SUPERIOR DIREITO do painel do
+   Postgres (o X que fecha o painel inteiro do serviço, não o do modal). Você
+   precisa VOLTAR pra view geral do projeto onde os 3 cards (Postgres, Evolution,
+   Agente) ficam visíveis. Sem fechar isso, não dá pra clicar no Agente.
+
+7) Agora na view geral do projeto, com os 3 cards visíveis. Tem TRÊS serviços:
      - Postgres (ícone do elefante azul)
      - Evolution (ícone do logo Evolution verde)
      - **Agente** (ícone do GitHub, com nome "agente-ia-whatsapp-imersao-sac")
