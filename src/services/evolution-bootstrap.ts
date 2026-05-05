@@ -114,6 +114,7 @@ export async function bootstrapEvolution(): Promise<EvolutionBootstrapResult | n
         webhook: { url: webhookUrl, events: REQUIRED_EVENTS },
       });
       logger.info({ instanceName, webhookUrl }, 'Evolution instance created');
+      await applyDefaultSettings(instanceName);
       return { instanceName, webhookUrl, created: true, webhookUpdated: true };
     } catch (err) {
       const status = err instanceof EvolutionError ? err.status : null;
@@ -143,6 +144,7 @@ export async function bootstrapEvolution(): Promise<EvolutionBootstrapResult | n
       enabled: true,
     });
     logger.info({ instanceName, webhookUrl }, 'Evolution webhook set');
+    await applyDefaultSettings(instanceName);
     return {
       instanceName,
       webhookUrl,
@@ -160,5 +162,33 @@ export async function bootstrapEvolution(): Promise<EvolutionBootstrapResult | n
       created: !existing,
       webhookUpdated: false,
     };
+  }
+}
+
+/**
+ * Aplica defaults sensatos para uma instância recém-criada (ou já existente):
+ *  - groupsIgnore=true  → ignora mensagens de grupos (agente é 1-1)
+ *  - readMessages=false → não marca mensagens como lidas (privacidade)
+ *  - readStatus=false   → não marca status como lidos
+ *  - rejectCall=false   → não rejeita ligações (deixa o WhatsApp decidir)
+ *
+ * Idempotente — pode rodar toda vez que o agente sobe sem efeito colateral.
+ */
+async function applyDefaultSettings(instanceName: string): Promise<void> {
+  try {
+    const evolution = getEvolutionClient();
+    await evolution.setSettings({
+      instanceName,
+      groupsIgnore: true,
+      readMessages: false,
+      readStatus: false,
+      rejectCall: false,
+    });
+    logger.info({ instanceName }, 'Evolution default settings applied');
+  } catch (err) {
+    logger.warn(
+      { err: err instanceof Error ? err.message : String(err), instanceName },
+      'failed to apply default settings (instance still functional)',
+    );
   }
 }

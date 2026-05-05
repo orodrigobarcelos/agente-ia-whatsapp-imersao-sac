@@ -43,7 +43,6 @@
         "DATABASE_SAVE_DATA_HISTORIC": "true",
         "QRCODE_LIMIT": "30",
         "QRCODE_COLOR": "#175197",
-        "CONFIG_SESSION_PHONE_VERSION": "2.3000.1023864365",
         "LANGUAGE": "pt-BR",
         "TYPEBOT_ENABLED": "false",
         "OPENAI_ENABLED": "false",

@@ -194,6 +194,43 @@ export class EvolutionClient {
     return result.data ?? {};
   }
 
+  async setSettings(params: {
+    instanceName: string;
+    rejectCall?: boolean;
+    msgCall?: string;
+    groupsIgnore?: boolean;
+    alwaysOnline?: boolean;
+    readMessages?: boolean;
+    readStatus?: boolean;
+    syncFullHistory?: boolean;
+  }): Promise<void> {
+    const body: Record<string, unknown> = {};
+    if (params.rejectCall !== undefined) body.rejectCall = params.rejectCall;
+    if (params.msgCall !== undefined) body.msgCall = params.msgCall;
+    if (params.groupsIgnore !== undefined) body.groupsIgnore = params.groupsIgnore;
+    if (params.alwaysOnline !== undefined) body.alwaysOnline = params.alwaysOnline;
+    if (params.readMessages !== undefined) body.readMessages = params.readMessages;
+    if (params.readStatus !== undefined) body.readStatus = params.readStatus;
+    if (params.syncFullHistory !== undefined) body.syncFullHistory = params.syncFullHistory;
+
+    const result = await this.request(
+      'POST',
+      `/settings/set/${encodeURIComponent(params.instanceName)}`,
+      body,
+    );
+    if (!result.ok) {
+      logger.warn(
+        { status: result.status, body: result.raw, instance: params.instanceName },
+        'evolution setSettings failed',
+      );
+      throw new EvolutionError(
+        `Evolution setSettings failed: ${result.status}`,
+        result.status,
+        result.raw,
+      );
+    }
+  }
+
   async setWebhook(params: {
     instanceName: string;
     url: string;
