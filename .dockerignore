@@ -1,0 +1,17 @@
+node_modules
+dist
+.git
+.env
+.env.local
+.env.*.local
+.mcp.json
+*.log
+.DS_Store
+kit
+docs
+README.md
+CLAUDE.md
+CHECKLIST-ANTES.md
+PROMPT-*.md
+prompt.md
+skills

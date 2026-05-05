@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "postgres-agente": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@henkey/postgres-mcp-server",
+        "--connection-string",
+        "SUBSTITUIR_PELA_DATABASE_PUBLIC_URL_DA_RAILWAY"
+      ]
+    }
+  }
+}
