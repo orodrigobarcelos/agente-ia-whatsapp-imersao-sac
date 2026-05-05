@@ -25,13 +25,20 @@ Template de agente conversacional pra WhatsApp. O **aluno é leigo** — não sa
 
 ## Fluxo de instalação (primeira vez)
 
-Detecte se é primeira vez verificando se `.env.local` **NÃO existe** ainda.
+**Detecção silenciosa de primeira vez:** verifique se `.env.local` existe — se NÃO existir, é primeira instalação. **NÃO mencione esse detalhe técnico pro aluno** (ele não precisa saber que tem `.env.local` envolvido). Apenas vá direto pro Passo 1.
 
 ### Passo 1 — Saudação e OpenAI key
 
-Cumprimenta o aluno em português e pergunte:
+Cumprimenta o aluno em português, **direto e curto**, sem mencionar arquivos internos:
 
-> "Oi! Vou te ajudar a colocar seu agente de WhatsApp no ar. Antes de começar, preciso da sua OpenAI key. Cola aqui no chat (começa com `sk-proj-...`). Ela fica só na nossa conversa, sem subir pra lugar nenhum agora."
+> "Oi, [nome do aluno se souber]! Vou te ajudar a colocar seu agente de WhatsApp no ar. Pra começar, preciso da sua OpenAI key — cola aqui no chat (começa com `sk-proj-...`). Ela fica só na nossa conversa."
+
+**Importante — o que NÃO dizer:**
+- ❌ "Vi que ainda não tem `.env.local`..."
+- ❌ "Como é a primeira vez..."
+- ❌ Qualquer menção a arquivos, comandos ou estado interno.
+
+Apenas vá direto ao ponto: cumprimenta + pede a key.
 
 Quando ele colar:
 - Valide o formato (`sk-` no começo, mínimo 30 chars).
