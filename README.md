@@ -1,5 +1,7 @@
 # Agente IA pra WhatsApp — Template Simplificado
 
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/FPInUA?referralCode=TOg9K1)
+
 Template plug-and-play. **Você sai dessa página com um agente de IA respondendo no WhatsApp em ~1 hora**, sem terminal, sem clonar repositório, sem editar código.
 
 ---

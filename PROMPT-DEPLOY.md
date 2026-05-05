@@ -14,19 +14,18 @@ WhatsApp no ar na Railway, sem que eu precise navegar nada manualmente.
 
 CONTEXTO
 - Já tenho conta Railway com cartão cadastrado.
-- Já tenho o template Railway na URL: https://railway.com/template/SUBSTITUIR_PELO_SEU_TEMPLATE_ID
+- Já tenho o template Railway na URL: https://railway.com/deploy/FPInUA?referralCode=TOg9K1
 - Minha OpenAI API key é: __OPENAI_KEY__
 - Você vai criar um deploy desse template, esperar subir, e me devolver 2 URLs.
 
 PASSO A PASSO
 
-1) Abre uma aba em https://railway.com/template/SUBSTITUIR_PELO_SEU_TEMPLATE_ID
+1) Abre uma aba em https://railway.com/deploy/FPInUA?referralCode=TOg9K1
 
 2) Se eu não estiver logado: me peça pra logar (eu logo). Aguarde retornar logado.
 
 3) Quando aparecer a tela "Configure" do template:
    - No campo OPENAI_API_KEY: cole exatamente "__OPENAI_KEY__".
-   - No campo AGENT_PROMPT_BOOTSTRAP: deixe VAZIO (vou configurar depois).
    - Em todos os outros campos: deixe os defaults.
 
 4) Clica em "Deploy" e me confirma que clicou.
@@ -65,7 +64,7 @@ REGRAS
 
 ## Notas pra você (Rodrigo)
 
-1. **Substitua `SUBSTITUIR_PELO_SEU_TEMPLATE_ID`** pelas 2 ocorrências assim que você criar o template público na Railway. Veja `docs/COMO-CRIAR-TEMPLATE-RAILWAY.md`.
+1. **URL do template Railway** já preenchida: `https://railway.com/deploy/FPInUA?referralCode=TOg9K1`. Se publicar versão nova do template, atualize as 2 ocorrências aqui.
 
 2. **`__OPENAI_KEY__`** é o placeholder que o Claude Code substitui em tempo real (instrução tá no `CLAUDE.md`).
 
