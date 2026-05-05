@@ -43,6 +43,8 @@
         "DATABASE_SAVE_DATA_HISTORIC": "true",
         "QRCODE_LIMIT": "30",
         "QRCODE_COLOR": "#175197",
+        "CACHE_REDIS_ENABLED": "false",
+        "CACHE_LOCAL_ENABLED": "true",
         "LANGUAGE": "pt-BR",
         "TYPEBOT_ENABLED": "false",
         "OPENAI_ENABLED": "false",
