@@ -43,41 +43,69 @@ PASSO A PASSO
    projeto novo que você vai trabalhar nos próximos passos — NÃO confunda com
    outros projetos que eu já tenha na conta.
 
-6) No projeto NOVO, clica no card do serviço "Postgres":
-   - Aba "Variables" (no topo).
-   - Clica em "{} Raw Editor" no canto direito superior da lista.
-   - Vai abrir um modal com TODAS as vars desofuscadas (sem asteriscos).
-   - Encontra a linha que começa com DATABASE_PUBLIC_URL=
-   - COPIA o valor completo dessa linha (começa com postgresql://postgres:... e
-     termina com /railway).
-   - Fecha o modal Raw Editor (botão Cancel ou X do modal).
-   - Guarda esse valor como POSTGRES_URL.
+6) FASE 1 — pegar SOMENTE a URL do Postgres. NÃO vai fazer nada além disso
+   nesse passo.
 
-   ATENÇÃO: É DATABASE_PUBLIC_URL (com PUBLIC). NÃO é DATABASE_URL (sem PUBLIC) —
-   essa é a URL interna que NÃO funciona de fora da Railway.
+   - No projeto NOVO, clica no card do serviço "Postgres".
+   - Vai abrir um painel. Clica na aba "Variables" (no topo).
+   - Vai aparecer lista de ~13 variáveis com valores mascarados ("*******").
+   - Encontra a linha "DATABASE_PUBLIC_URL" (a primeira da lista, com "PUBLIC"
+     no nome — NÃO é a "DATABASE_URL" sem PUBLIC).
+   - Passa o mouse sobre essa linha (hover). Aparecem 2 ícones do lado direito
+     dos asteriscos: ícone de OLHO (👁) e ícone de DUAS PÁGINAS (📋 copy).
+   - Clica no ícone de COPY (📋, duas páginas). Railway copia o VALOR RESOLVIDO
+     completo pro clipboard mesmo o valor estando mascarado visualmente.
+   - Cola o valor copiado AQUI NO CHAT pra mim VER. Vai começar com
+     "postgresql://postgres:" e terminar com "/railway".
 
-   AGORA, OBRIGATÓRIO: clica no X grande do canto SUPERIOR DIREITO do painel do
-   Postgres (o X que fecha o painel inteiro do serviço, não o do modal). Você
-   precisa VOLTAR pra view geral do projeto onde os 3 cards (Postgres, Evolution,
-   Agente) ficam visíveis. Sem fechar isso, não dá pra clicar no Agente.
+   ⏸ STOP. PARA AQUI. NÃO faz mais nada.
 
-7) Agora na view geral do projeto, com os 3 cards visíveis. Tem TRÊS serviços:
-     - Postgres (ícone do elefante azul)
+   Espera EU (usuário) responder com "ok, pode continuar" no chat.
+
+   Por que parar: se você pegou a URL errada (DATABASE_URL em vez de
+   DATABASE_PUBLIC_URL, ou alguma var diferente), eu vou ver e te corrigir
+   ANTES de você navegar pra outro serviço. Não desperdiça cliques.
+
+   Se eu disser "tá errado, é a outra" → volta na lista, pega a outra, manda de
+   novo, espera confirmação.
+
+   Se eu disser "ok, pode continuar" → segue pra FASE 2 (passo 7).
+
+   FALLBACK se NÃO encontrar os ícones de olho/copy ao passar o mouse:
+   - Clica nos 3 pontinhos (⋮) do canto direito da linha.
+   - Menu → "Edit" → modal com o valor visível.
+   - Copia o valor. Cancela o modal.
+   - Manda no chat e espera confirmação igual acima.
+
+7) FASE 2 — só execute APÓS eu ter confirmado a URL do passo 6.
+
+   Primeiro, FECHA o painel do Postgres:
+   - Clica no X grande do canto SUPERIOR DIREITO do painel do Postgres
+     (o X que fecha o painel inteiro do serviço).
+   - Confirma que voltou pra view geral do projeto onde os 3 cards (Postgres,
+     Evolution, Agente) ficam visíveis lado a lado no canvas.
+
+   Agora identifica os 3 cards na view geral:
+     - Postgres (ícone de elefante azul)
      - Evolution (ícone do logo Evolution verde)
-     - **Agente** (ícone do GitHub, com nome "agente-ia-whatsapp-imersao-sac")
+     - Agente (ícone do GitHub, nome "agente-ia-whatsapp-imersao-sac")
 
-   Clica no terceiro — o do GitHub. NÃO é o Postgres, NÃO é o Evolution.
+   Clica no TERCEIRO — o do GitHub. NÃO é o Postgres, NÃO é o Evolution.
 
-   - O painel já abre na aba "Deployments".
+   - O painel abre na aba "Deployments".
    - Logo abaixo do nome do serviço, no topo dessa aba, aparece a URL pública
-     já gerada (algo tipo https://agente-ia-whatsapp-imersao-sac-production-XXX.up.railway.app).
-   - COPIA essa URL pública.
-   - Guarda como AGENT_URL.
+     já gerada (formato https://agente-ia-whatsapp-imersao-sac-production-XXX.up.railway.app).
+   - COPIA essa URL pública (clica nela ou no ícone de copy ao lado).
+   - Cola AQUI NO CHAT pra mim ver.
 
-   (Não precisa ir em Settings → Networking. A URL fica visível direto em Deployments.)
+   (Não precisa ir em Settings → Networking. A URL aparece direto em Deployments.)
 
-8) Me devolve essas 2 URLs num bloco copiável EXATAMENTE neste formato (sem nada
-   além disso, pra eu colar de uma vez):
+   ⏸ STOP de novo. Espera eu responder "ok, pode continuar" antes do passo 8.
+
+8) FASE 3 — só execute APÓS confirmação das duas URLs.
+
+   Me devolve as 2 URLs num bloco copiável EXATAMENTE neste formato (sem nada
+   além, pra eu colar de uma vez):
 
    DATABASE_URL=<valor de POSTGRES_URL>
    AGENT_URL=<valor de AGENT_URL>
