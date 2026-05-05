@@ -103,30 +103,46 @@ function renderQrPage(instanceName: string): string {
     const statusEl = document.getElementById('status');
     const pairingEl = document.getElementById('pairing');
     let lastQr = '';
-    let connected = false;
+    let lastState = '';
+
+    function setQrPlaceholder(text) {
+      qrEl.innerHTML = '<span><span class="spinner"></span>' + text + '</span>';
+      lastQr = '';
+    }
 
     async function tickState() {
       try {
         const r = await fetch('/qr/state').then(r => r.json());
-        if (r.state === 'open') {
-          connected = true;
-          statusEl.className = 'status connected';
-          statusEl.textContent = '✅ Conectado! Pode fechar essa página.';
-          qrEl.innerHTML = '<div style="font-size:64px">✅</div>';
-          return true;
+        const state = r.state || 'unknown';
+        if (state !== lastState) {
+          if (state === 'open') {
+            statusEl.className = 'status connected';
+            statusEl.textContent = '✅ Conectado! Pode fechar essa página.';
+            qrEl.innerHTML = '<div style="font-size:64px">✅</div>';
+            pairingEl.hidden = true;
+          } else if (state === 'connecting') {
+            statusEl.className = 'status waiting';
+            statusEl.textContent = 'Sincronizando com WhatsApp…';
+            setQrPlaceholder('aguardando…');
+          } else {
+            // close, unknown, etc — voltar a mostrar QR
+            statusEl.className = 'status waiting';
+            statusEl.textContent = 'Aguardando você escanear…';
+            if (qrEl.querySelector('img') === null && qrEl.querySelector('.spinner') === null) {
+              setQrPlaceholder('gerando QR Code…');
+            }
+          }
+          lastState = state;
         }
-        if (r.state === 'connecting') {
-          statusEl.textContent = 'Sincronizando com WhatsApp…';
-        }
+        return state;
       } catch (e) {
         statusEl.className = 'status error';
         statusEl.textContent = 'Erro consultando status. Tentando de novo…';
+        return 'error';
       }
-      return false;
     }
 
     async function tickQr() {
-      if (connected) return;
       try {
         const r = await fetch('/qr/image').then(r => r.json());
         if (r.base64 && r.base64 !== lastQr) {
@@ -144,9 +160,12 @@ function renderQrPage(instanceName: string): string {
     }
 
     async function loop() {
-      const done = await tickState();
-      if (done) return;
-      await tickQr();
+      const state = await tickState();
+      // Buscar QR apenas quando NÃO estamos conectados.
+      // Continuamos polling sempre — desconexão volta a mostrar QR.
+      if (state !== 'open') {
+        await tickQr();
+      }
       setTimeout(loop, 2000);
     }
     loop();
