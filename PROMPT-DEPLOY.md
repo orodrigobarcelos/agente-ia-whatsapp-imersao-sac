@@ -22,11 +22,13 @@ CONTEXTO
 - Minha OpenAI API key é: __OPENAI_KEY__
 
 REGRAS GLOBAIS
-- Você NUNCA toca em "Settings", "Networking", "Generate Domain", "TCP Proxy"
-  ou qualquer botão de configuração. O template já provisionou tudo.
-- Você NUNCA clica em "Edit", "Disconnect", "Restart", "Redeploy".
-- Sua única atividade pós-Deploy é: hover em uma linha de variável → ícone de
-  COPY → colar no chat. NADA além.
+- A ÚNICA configuração que você TEM permissão de mexer é "TCP Proxy" do
+  Postgres (passo 6 abaixo) — sem isso a URL pública do banco fica vazia.
+- VOCÊ NÃO toca em Settings de Evolution NEM de Agente. Só do Postgres,
+  exclusivamente pra TCP Proxy.
+- Você NUNCA clica em "Edit", "Disconnect", "Restart", "Redeploy", "Eject".
+- Você NUNCA clica em "Generate Domain" (HTTP) — isso é pra serviços HTTP, não
+  pra Postgres. Postgres precisa de TCP Proxy, não de HTTP domain.
 
 PASSO A PASSO
 
@@ -50,26 +52,48 @@ PASSO A PASSO
    "respectful-bravery"). É NESSE projeto novo que você trabalha. NÃO confunda
    com outros projetos antigos da minha conta.
 
-6) Pega a URL do Postgres:
+6) Habilita TCP Proxy no Postgres (OBRIGATÓRIO antes de pegar URL):
 
+   Quando o Postgres é provisionado pelo template, NÃO vem com TCP Proxy
+   automático. Sem ele, a DATABASE_PUBLIC_URL fica com host/porta vazios:
+   "postgresql://postgres:SENHA@:/railway" (note o "@:/" — quebrado).
+
+   Pra resolver:
    a) Clica no card do serviço "Postgres" no canvas do projeto.
-   b) Painel abre. Clica na aba "Variables".
-      ATENÇÃO: NÃO clica em Settings. NÃO clica em Database. APENAS Variables.
-   c) Lista de ~13 variáveis aparece, cada linha com valor mascarado ("*******").
-   d) Encontra a linha "DATABASE_PUBLIC_URL" (geralmente a primeira da lista,
-      com "PUBLIC" no nome). NÃO é a "DATABASE_URL" sem PUBLIC.
-   e) Hover sobre a linha do DATABASE_PUBLIC_URL. Aparecem 2 ícones do lado
+   b) Painel abre. Clica na aba "Settings" (última do topo).
+   c) Rola a tela até achar a seção "Networking".
+   d) Dentro de "Networking", procura subseção "TCP Proxy" (NÃO é "Public
+      Networking" / "Generate Domain" — esses são pra HTTP). Procura um
+      botão tipo "Add TCP Proxy" / "Generate TCP Proxy" / "Enable TCP Proxy".
+   e) Clica nesse botão. Railway vai pedir uma porta interna — escolhe 5432
+      (porta padrão Postgres) e confirma.
+   f) Aguarda Railway provisionar (~10-30 segundos). Vai aparecer um endereço
+      tipo "trolley.proxy.rlwy.net:XXXXX" listado na seção TCP Proxy.
+
+7) Pega a URL do Postgres:
+
+   a) Ainda no painel do Postgres, clica na aba "Variables" (no topo).
+   b) Lista de ~13 variáveis aparece, cada linha com valor mascarado ("*******").
+   c) Encontra a linha "DATABASE_PUBLIC_URL" (com "PUBLIC" no nome).
+      NÃO é a "DATABASE_URL" sem PUBLIC.
+   d) Hover sobre a linha do DATABASE_PUBLIC_URL. Aparecem 2 ícones do lado
       direito dos asteriscos:
          - 👁 olho (revela visualmente)
          - 📋 duas páginas sobrepostas (COPY)
-   f) Clica no ícone 📋 (COPY). O valor REAL é copiado pro clipboard.
+   e) Clica no ícone 📋 (COPY). O valor REAL é copiado pro clipboard.
       Esse é o ÚNICO caminho que copia o valor resolvido.
       NÃO usa Raw Editor (mostra referências, não funciona).
       NÃO usa 3 pontinhos > Edit (mesma coisa, não funciona).
-   g) Cola o valor copiado AQUI NO CHAT pra eu ver. Formato esperado:
+   f) Cola o valor copiado AQUI NO CHAT pra eu ver. Formato esperado:
       postgresql://postgres:SENHA@trolley.proxy.rlwy.net:PORTA/railway
 
-7) ⏸ FIM. Você terminou.
+   ATENÇÃO: se o valor copiado for "postgresql://postgres:SENHA@:/railway"
+   (com "@:/" — host e porta vazios), significa que o TCP Proxy do passo 6
+   ainda não terminou de provisionar. Aguarda mais 30 segundos e copia de
+   novo. Se persistir, volta no passo 6 e verifica se o TCP Proxy realmente
+   foi criado.
+
+8) ⏸ FIM. Você terminou.
 
    Diga: "pronto, copia a URL acima e cola no Claude Code. Ele vai te dar o
    próximo prompt pra eu pegar a URL do Agente."
@@ -81,7 +105,9 @@ REGRAS FINAIS
 - Não invente URLs. Se não conseguir achar alguma, me avise e pare.
 - Se o deploy travar com erro, copie a mensagem e me mostre.
 - Se eu pedir pra parar a qualquer momento, pare imediatamente.
-- NUNCA toque em Settings. NUNCA habilite nada. NUNCA configure nada.
+- A ÚNICA configuração permitida é habilitar TCP Proxy no Postgres (passo 6).
+  Tudo o mais — Settings de Evolution, Settings do Agente, Generate Domain HTTP,
+  Edit de variável, Disconnect, Restart — É PROIBIDO.
 ```
 
 ---
