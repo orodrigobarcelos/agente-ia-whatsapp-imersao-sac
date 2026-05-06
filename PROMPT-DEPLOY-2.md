@@ -38,9 +38,11 @@ PASSO A PASSO
 
 3) Se for primeira vez Railway acessar GitHub:
    a) Vai abrir popup "Configure GitHub App" / "Authorize Railway".
-   b) Aceita / autoriza. Se pedir escopo: "Only select repositories"
-      e marca "__GITHUB_REPO__".
-   c) Confirma. Volta pra Railway.
+   b) Aceita / autoriza. Quando aparecer a tela "Install & Authorize on
+      your personal account", em "for these repositories:" escolhe a
+      opção "All repositories" (NÃO "Only select repositories" — All é
+      mais simples e Railway só usa o que você apontar pra ele).
+   c) Clica "Install & Authorize". Volta pra Railway automaticamente.
 
 4) Na lista de repos que aparece, seleciona "__GITHUB_REPO__".
 
