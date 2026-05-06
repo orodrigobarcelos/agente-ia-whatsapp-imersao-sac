@@ -182,21 +182,34 @@ async function applyDefaultSettings(instanceName: string): Promise<void> {
   const evolution = getEvolutionClient();
   const maxAttempts = 3;
   let lastError: unknown = null;
+  let lastErrorBody: string | null = null;
+
+  // Defaults que queremos aplicar.
+  const desiredOverrides = {
+    groupsIgnore: true,
+    readMessages: false,
+    readStatus: false,
+    rejectCall: false,
+  };
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
+      // GET-then-merge: pega settings atuais (com TODOS os campos que Evolution
+      // expõe, incluindo wavoipToken e outros que possam ter sido adicionados
+      // em versões novas), sobrescreve apenas os que queremos mudar, e posta
+      // o body COMPLETO de volta. Isso evita 400 por campos faltando.
+      const current = await evolution.getSettings(instanceName).catch(() => null);
+      const merged = {
+        ...(current ?? {}),
+        ...desiredOverrides,
+      };
+
       await evolution.setSettings({
         instanceName,
-        groupsIgnore: true,
-        readMessages: false,
-        readStatus: false,
-        rejectCall: false,
-        msgCall: '',
-        alwaysOnline: false,
-        syncFullHistory: false,
+        ...merged,
       });
       logger.info(
-        { instanceName, attempt },
+        { instanceName, attempt, sent: Object.keys(merged) },
         'Evolution default settings applied',
       );
 
@@ -215,9 +228,18 @@ async function applyDefaultSettings(instanceName: string): Promise<void> {
       return;
     } catch (err) {
       lastError = err;
+      // Captura o body do erro pra debug (Evolution costuma retornar mensagem
+      // útil tipo "Validation failed: campo X faltando").
+      lastErrorBody =
+        err instanceof EvolutionError
+          ? err.body
+          : err instanceof Error
+            ? err.message
+            : String(err);
       logger.warn(
         {
           err: err instanceof Error ? err.message : String(err),
+          body: lastErrorBody,
           instanceName,
           attempt,
           maxAttempts,
@@ -233,6 +255,7 @@ async function applyDefaultSettings(instanceName: string): Promise<void> {
   logger.warn(
     {
       err: lastError instanceof Error ? lastError.message : String(lastError),
+      body: lastErrorBody,
       instanceName,
     },
     'failed to apply default settings after retries (instance still functional, configure manually in Evolution Manager)',
