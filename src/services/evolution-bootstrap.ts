@@ -166,6 +166,34 @@ export async function bootstrapEvolution(): Promise<EvolutionBootstrapResult | n
 }
 
 /**
+ * Remove campos do payload de settings que NÃO devem ser repostados pra
+ * Evolution durante o GET-then-merge.
+ *
+ * Motivo: postar `wavoipToken` (mesmo vazio) reinicializa o módulo VoIP
+ * dentro do Evolution v2.3.7. Esse reinit dispara durante o pareamento
+ * WhatsApp Web e produz `stream:error tag:conflict type:replaced`,
+ * derrubando a conexão logo após "CONNECTED TO WHATSAPP". Chip pessoal
+ * é afetado; chip Business às vezes escapa por permissões diferentes.
+ *
+ * Como o nosso agente NÃO usa VoIP, esses campos podem ser omitidos sem
+ * impacto funcional. Outros campos (groupsIgnore, readMessages, etc) são
+ * preservados.
+ */
+const VOIP_FIELDS = ['wavoipToken'] as const;
+
+function sanitizeSettings(
+  current: Record<string, unknown> | null | undefined,
+): Record<string, unknown> {
+  if (!current) return {};
+  const clean: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(current)) {
+    if ((VOIP_FIELDS as readonly string[]).includes(key)) continue;
+    clean[key] = value;
+  }
+  return clean;
+}
+
+/**
  * Aplica defaults sensatos para uma instância recém-criada (ou já existente):
  *  - groupsIgnore=true  → ignora mensagens de grupos (agente é 1-1)
  *  - readMessages=false → não marca mensagens como lidas (privacidade)
@@ -195,12 +223,19 @@ async function applyDefaultSettings(instanceName: string): Promise<void> {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       // GET-then-merge: pega settings atuais (com TODOS os campos que Evolution
-      // expõe, incluindo wavoipToken e outros que possam ter sido adicionados
-      // em versões novas), sobrescreve apenas os que queremos mudar, e posta
-      // o body COMPLETO de volta. Isso evita 400 por campos faltando.
+      // expõe, incluindo campos novos que possam ter sido adicionados em
+      // versões mais recentes), sobrescreve apenas os que queremos mudar, e
+      // posta o body COMPLETO de volta. Isso evita 400 por campos faltando.
+      //
+      // EXCEÇÃO: campos relacionados a VoIP (wavoipToken, etc) são EXCLUÍDOS
+      // do body. Postar wavoipToken (mesmo vazio) pode reinicializar o módulo
+      // VoIP no Evolution v2.3.7 e causar `stream:error tag:conflict
+      // type:replaced` durante o pareamento WhatsApp Web — quebrando a
+      // conexão do chip pessoal logo após "CONNECTED TO WHATSAPP".
       const current = await evolution.getSettings(instanceName).catch(() => null);
+      const sanitized = sanitizeSettings(current);
       const merged = {
-        ...(current ?? {}),
+        ...sanitized,
         ...desiredOverrides,
       };
 
