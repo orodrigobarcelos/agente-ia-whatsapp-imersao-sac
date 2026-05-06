@@ -43,39 +43,37 @@ PASSO A PASSO
    projeto novo que você vai trabalhar nos próximos passos — NÃO confunda com
    outros projetos que eu já tenha na conta.
 
-6) FASE 1 — pegar SOMENTE a URL do Postgres. NÃO vai fazer nada além disso
-   nesse passo.
+6) FASE 1 — pegar SOMENTE a URL do Postgres. Passos exatos, sem desviar:
 
-   - No projeto NOVO, clica no card do serviço "Postgres".
-   - Vai abrir um painel. Clica na aba "Variables" (no topo).
-   - Vai aparecer lista de ~13 variáveis com valores mascarados ("*******").
-   - Encontra a linha "DATABASE_PUBLIC_URL" (a primeira da lista, com "PUBLIC"
-     no nome — NÃO é a "DATABASE_URL" sem PUBLIC).
-   - Passa o mouse sobre essa linha (hover). Aparecem 2 ícones do lado direito
-     dos asteriscos: ícone de OLHO (👁) e ícone de DUAS PÁGINAS (📋 copy).
-   - Clica no ícone de COPY (📋, duas páginas). Railway copia o VALOR RESOLVIDO
-     completo pro clipboard mesmo o valor estando mascarado visualmente.
-   - Cola o valor copiado AQUI NO CHAT pra mim VER. Vai começar com
-     "postgresql://postgres:" e terminar com "/railway".
+   a) No projeto NOVO, clica no card do serviço "Postgres".
+   b) Painel abre. Clica na aba "Variables" (no topo).
+   c) Lista de ~13 variáveis aparece, cada uma com valor mascarado ("*******").
+   d) Encontra a linha "DATABASE_PUBLIC_URL" (geralmente a primeira da lista,
+      com "PUBLIC" no nome). NÃO é a "DATABASE_URL" sem PUBLIC.
+   e) Passa o mouse sobre essa linha (hover). Aparecem 2 ícones do lado direito
+      dos asteriscos:
+         - 👁 olho (revela o valor visualmente)
+         - 📋 duas páginas sobrepostas (COPY — copia o valor resolvido pro clipboard)
+   f) Clica no ícone de COPY (📋, duas páginas sobrepostas). Esse é o ÚNICO
+      caminho que copia o VALOR RESOLVIDO. NÃO uses Raw Editor (mostra
+      referências tipo "${{POSTGRES_PASSWORD}}", não o valor).
+      NÃO uses 3 pontinhos → Edit (mesma coisa, mostra referências).
+      É APENAS o ícone de COPY na própria linha da variável.
+   g) Cola o valor copiado AQUI NO CHAT pra eu ver. Formato esperado:
+      postgresql://postgres:SENHA@trolley.proxy.rlwy.net:PORTA/railway
 
-   ⏸ STOP. PARA AQUI. NÃO faz mais nada.
+   ⏸ STOP. PARA AQUI. NÃO clica mais em nada.
 
-   Espera EU (usuário) responder com "ok, pode continuar" no chat.
+   Espera EU (usuário) responder no chat com "ok, pode continuar".
 
    Por que parar: se você pegou a URL errada (DATABASE_URL em vez de
-   DATABASE_PUBLIC_URL, ou alguma var diferente), eu vou ver e te corrigir
-   ANTES de você navegar pra outro serviço. Não desperdiça cliques.
+   DATABASE_PUBLIC_URL, ou outra var qualquer), eu vou ver e te corrigir antes
+   de você navegar pra outro serviço.
 
-   Se eu disser "tá errado, é a outra" → volta na lista, pega a outra, manda de
-   novo, espera confirmação.
+   Se eu disser "tá errado, é a outra" → volta na lista (passo d), pega a
+   correta (passo e-f), cola no chat (passo g), e espera confirmação de novo.
 
    Se eu disser "ok, pode continuar" → segue pra FASE 2 (passo 7).
-
-   FALLBACK se NÃO encontrar os ícones de olho/copy ao passar o mouse:
-   - Clica nos 3 pontinhos (⋮) do canto direito da linha.
-   - Menu → "Edit" → modal com o valor visível.
-   - Copia o valor. Cancela o modal.
-   - Manda no chat e espera confirmação igual acima.
 
 7) FASE 2 — só execute APÓS eu ter confirmado a URL do passo 6.
 
