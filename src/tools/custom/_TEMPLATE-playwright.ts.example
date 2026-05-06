@@ -1,0 +1,78 @@
+/**
+ * TEMPLATE de tool com Playwright (browser automation).
+ *
+ * Esse arquivo NÃO é importado automaticamente (extensão .example).
+ * O Claude Code usa esse template como base quando o aluno pede
+ * uma tool que precisa abrir um site, clicar, extrair info, etc.
+ *
+ * Padrão de uso:
+ *   1. Claude Code copia esse arquivo pra src/tools/custom/<nome>.ts
+ *   2. Edita name, description, parameters e a lógica do handler
+ *   3. Adiciona `import './custom/<nome>.js';` em ../index.ts
+ *   4. Testa local: `npx tsx src/tools/custom/<nome>.ts --test`
+ *   5. Comita e dá push pra Railway redeployar
+ *
+ * Limite de tempo: 5 minutos (timeout do runner).
+ */
+import { chromium } from 'playwright';
+import { registerTool } from '../registry.js';
+
+registerTool({
+  name: 'EXEMPLO_RENOMEIE_ME',
+  description:
+    'Use quando o cliente [DESCREVA O CASO]. ' +
+    'Retorna [DESCREVA O QUE A TOOL DEVOLVE].',
+  parameters: {
+    type: 'object',
+    properties: {
+      query: {
+        type: 'string',
+        description: 'Texto/código que será buscado no site',
+      },
+    },
+    // OBRIGATÓRIO em strict mode: TODAS as keys de properties listadas aqui
+    required: ['query'],
+    // OBRIGATÓRIO em strict mode: false em TODOS os níveis (raiz e aninhados)
+    additionalProperties: false,
+  },
+  handler: async ({ query }) => {
+    if (typeof query !== 'string') {
+      throw new Error('query deve ser string');
+    }
+
+    // headless=true em produção. args ajudam em containers Docker.
+    const browser = await chromium.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+
+    try {
+      const context = await browser.newContext({
+        userAgent:
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 ' +
+          '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      });
+      const page = await context.newPage();
+
+      await page.goto(
+        `https://example.com/buscar?q=${encodeURIComponent(query)}`,
+        {
+          waitUntil: 'domcontentloaded',
+          timeout: 30_000,
+        },
+      );
+
+      // Espera o elemento alvo aparecer (evita race condition com JS-heavy sites)
+      await page.waitForSelector('.resultado', { timeout: 10_000 });
+      const valor = await page.textContent('.resultado');
+
+      return {
+        encontrado: valor !== null,
+        valor: valor?.trim() ?? null,
+      };
+    } finally {
+      // SEMPRE fecha o browser (mesmo em erro) — Chromium come ~200MB de RAM
+      await browser.close();
+    }
+  },
+});

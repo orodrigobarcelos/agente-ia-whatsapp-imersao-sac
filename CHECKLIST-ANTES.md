@@ -1,6 +1,6 @@
 # Checklist — antes da imersão
 
-Faça isso **na semana anterior**. Sem essas 5 coisas prontas, você não consegue terminar a instalação no dia.
+Faça isso **na semana anterior**. Sem essas 6 coisas prontas, você não consegue terminar a instalação no dia.
 
 ---
 
@@ -24,7 +24,19 @@ Faça isso **na semana anterior**. Sem essas 5 coisas prontas, você não conseg
 
 ---
 
-## 3. Conta Railway com cartão cadastrado
+## 3. Conta GitHub (privada, o código fica aqui)
+
+**Por quê:** o Claude Code cria um repositório **privado** na tua conta com o código do agente. Daí em diante, qualquer mudança que você fizer (nova skill, nova tool, ajuste de fluxo) é commitada e empurrada pro teu repo automaticamente — e a Railway redeploya sozinha em ~5 min.
+
+- [ ] Criei conta em [github.com/signup](https://github.com/signup) (grátis).
+- [ ] Tenho **Git** instalado (Mac vem com Xcode CLT; Windows precisa baixar em [git-scm.com](https://git-scm.com)).
+- [ ] *(Opcional)* Instalei o **GitHub CLI** em [cli.github.com](https://cli.github.com). Se não instalar, o Claude Code instala pra você na hora.
+
+> **Por quê privado:** o repo guarda configs sensíveis. O Claude Code cria com `--private` por padrão. Não inverta — se virar público, qualquer chave que esteja em commit antigo fica exposta.
+
+---
+
+## 4. Conta Railway com cartão cadastrado
 
 **Por quê:** é onde teu agente vai morar. Cartão é exigido **mesmo no plano free** pra verificação.
 
@@ -36,7 +48,7 @@ Faça isso **na semana anterior**. Sem essas 5 coisas prontas, você não conseg
 
 ---
 
-## 4. Conta OpenAI com US$ 5 e API key
+## 5. Conta OpenAI com US$ 5 e API key
 
 **Por quê:** o agente usa GPT pra conversar e Whisper pra transcrever áudios. Mínimo de saldo: $5.
 
@@ -49,7 +61,7 @@ Faça isso **na semana anterior**. Sem essas 5 coisas prontas, você não conseg
 
 ---
 
-## 5. Chip de WhatsApp dedicado
+## 6. Chip de WhatsApp dedicado
 
 **Por quê:** o agente conecta via Evolution API (não oficial), que assume controle do número. **Não use seu chip pessoal** — risco de ban Meta + você perde o WhatsApp pessoal.
 
