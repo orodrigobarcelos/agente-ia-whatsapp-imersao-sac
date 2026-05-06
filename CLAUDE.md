@@ -456,8 +456,39 @@ npx tsx /tmp/test-<nome>.mjs '{"<param>": "<valor_teste>"}'
 
 Mostra output pro aluno.
 
-- **Falhou** (erro de runtime, seletor não encontrado, timeout): ajusta código, testa de novo.
-- **Passou:** pede aprovação do aluno antes de subir.
+- **Falhou** (erro de runtime, seletor não encontrado, timeout): ajusta código, testa de novo (em headless, rápido).
+- **Passou:** segue pro próximo passo — demo visual.
+
+#### 6.5. Demo visual (só pra tools com Playwright)
+
+Quando o teste headless passou, roda **mais 1 vez** com browser visível pro aluno **ver o que vai virar tool**. Faz parte do fluxo padrão — **não precisa o aluno pedir.**
+
+Cria/edita um `/tmp/test-<nome>-visual.mjs` que monkey-patcha o `chromium.launch` pra forçar `headless: false` + `slowMo: 600` (sem alterar o arquivo da tool):
+
+```bash
+cat > /tmp/test-<nome>-visual.mjs <<'EOF'
+import { chromium } from 'playwright';
+const origLaunch = chromium.launch.bind(chromium);
+chromium.launch = (opts = {}) =>
+  origLaunch({ ...opts, headless: false, slowMo: 600 });
+
+await import('./src/tools/index.js');
+const { executeTool } = await import('./src/tools/runner.js');
+const args = JSON.parse(process.argv[2] || '{}');
+const result = await executeTool('<nome>', args);
+console.log('\n=== Resultado ===\n', JSON.stringify(result, null, 2));
+EOF
+
+npx tsx /tmp/test-<nome>-visual.mjs '{"<param>": "<valor_teste>"}'
+```
+
+Diz pro aluno antes de rodar:
+
+> "Vou abrir o navegador na tua tela pra você ver a tool funcionando ao vivo. Vai abrir uma janela do Chromium, navegar, clicar, extrair, e fechar. Depois disso commita."
+
+Aluno aprova o que viu → vai pro Passo 7. Aluno achou estranho/errado (clicou no lugar errado, extraiu dado errado) → ajusta código + repete demo visual.
+
+**Tools sem Playwright (só fetch HTTP):** pula esse passo. Não tem o que mostrar visualmente.
 
 #### 7. Commit + push
 
