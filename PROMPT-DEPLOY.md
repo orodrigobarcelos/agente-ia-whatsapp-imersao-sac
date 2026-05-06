@@ -67,8 +67,17 @@ PASSO A PASSO
       botão tipo "Add TCP Proxy" / "Generate TCP Proxy" / "Enable TCP Proxy".
    e) Clica nesse botão. Railway vai pedir uma porta interna — escolhe 5432
       (porta padrão Postgres) e confirma.
-   f) Aguarda Railway provisionar (~10-30 segundos). Vai aparecer um endereço
-      tipo "trolley.proxy.rlwy.net:XXXXX" listado na seção TCP Proxy.
+   f) Vai aparecer um endereço tipo "trolley.proxy.rlwy.net:XXXXX" listado.
+
+   IMPORTANTE: criar o TCP Proxy gera uma "Change" pendente. Tem que aplicar:
+   g) Olha pro topo da tela do projeto. Vai ter uma faixa/banner com texto
+      tipo "1 change" e dois botões: "Details" e "Deploy ⇧+Enter" (em roxo).
+   h) Clica no botão "Deploy" desse banner do topo (NÃO confunde com o
+      botão Deploy original do template — é o NOVO botão que apareceu por
+      causa da change pendente).
+   i) Aguarda Railway aplicar a mudança (~30-60 segundos). O banner some
+      quando termina.
+   j) O Postgres vai voltar pra status "Active" / "Online".
 
 7) Pega a URL do Postgres:
 
