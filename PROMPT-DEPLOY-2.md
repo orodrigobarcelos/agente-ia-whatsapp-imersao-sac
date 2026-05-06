@@ -5,7 +5,8 @@
 > configura todas as env vars.
 >
 > Placeholders:
-> - `__GITHUB_REPO__` — Claude Code substitui por `<username>/<repo>`
+> - `__GITHUB_USERNAME__` — Claude Code substitui pelo username do aluno (ex: `aularodrigobarcelos`)
+> - `__GITHUB_REPO__` — Claude Code substitui por `<username>/<repo>` (ex: `aularodrigobarcelos/agente-ia-whatsapp`)
 > - `__OPENAI_KEY__` — key do aluno (do Passo 2 do CLAUDE.md)
 >
 > A `EVOLUTION_API_KEY` NÃO é placeholder — vem por referência interna
@@ -36,13 +37,32 @@ PASSO A PASSO
 
 2) Na view do projeto, clica "+ New" → "GitHub Repo".
 
-3) Se for primeira vez Railway acessar GitHub:
+3) ⚠️ Autoriza Railway no GitHub COM A CONTA CERTA — passo crítico,
+   se errar a conta vai dar "Bad credentials" depois:
+
    a) Vai abrir popup "Configure GitHub App" / "Authorize Railway".
-   b) Aceita / autoriza. Quando aparecer a tela "Install & Authorize on
-      your personal account", em "for these repositories:" escolhe a
-      opção "All repositories" (NÃO "Only select repositories" — All é
-      mais simples e Railway só usa o que você apontar pra ele).
-   c) Clica "Install & Authorize". Volta pra Railway automaticamente.
+
+   b) ⚠️ ANTES DE AUTORIZAR — VERIFICA a conta:
+      O popup mostra um cabeçalho tipo:
+        "Install & Authorize on your personal account NOME_DA_CONTA"
+
+      O nome NOME_DA_CONTA precisa ser EXATAMENTE: __GITHUB_USERNAME__
+
+      Se aparecer outro nome (porque o aluno tem múltiplas contas GitHub
+      no navegador), NÃO continua. Faz isso:
+        i.   Fecha o popup do GitHub.
+        ii.  Em outra aba, abre https://github.com
+        iii. Clica no avatar canto superior direito → "Switch account"
+        iv.  Escolhe "__GITHUB_USERNAME__".
+             (Se não estiver na lista, pede o aluno fazer login com a
+              conta "__GITHUB_USERNAME__" — esse é o passo manual dele.)
+        v.   Volta pra Railway, clica "+ New" → "GitHub Repo" de novo.
+        vi.  Confirma que AGORA o popup mostra "__GITHUB_USERNAME__".
+
+   c) Confirmada a conta, em "for these repositories:" escolhe "All
+      repositories" (NÃO "Only select repositories").
+
+   d) Clica "Install & Authorize". Volta pra Railway automaticamente.
 
 4) Na lista de repos que aparece, seleciona "__GITHUB_REPO__".
 

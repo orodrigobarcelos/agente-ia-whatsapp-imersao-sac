@@ -200,11 +200,14 @@ Quando ele colar a URL (deve começar com `postgresql://postgres:`):
 
 3. Crie `.mcp.json` (sobrescrevendo qualquer `.example`) com a URL substituída no campo `--connection-string`.
 
-4. Leia `PROMPT-DEPLOY-2.md` e **substitua os 2 placeholders**:
+4. Leia `PROMPT-DEPLOY-2.md` e **substitua os 3 placeholders**:
+   - `__GITHUB_USERNAME__` → `<username>` puro (do Passo 1.5, ex: `aularodrigobarcelos`)
    - `__GITHUB_REPO__` → `<username>/<repo_name>` (do Passo 1.5)
    - `__OPENAI_KEY__` → key do Passo 2
 
    *(`EVOLUTION_API_KEY` NÃO precisa ser substituída — o Prompt #2 usa referência interna `${{Evolution.AUTHENTICATION_API_KEY}}` que Railway resolve sozinho.)*
+
+   `__GITHUB_USERNAME__` é importante: o Prompt #2 usa pra Chrome agente verificar que o popup do GitHub Authorize tá com a conta certa antes de autorizar (evita "Bad credentials" caso aluno tenha múltiplas contas GitHub no navegador).
 
 5. Entrega:
 
