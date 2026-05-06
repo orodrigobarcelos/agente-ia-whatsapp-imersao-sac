@@ -197,6 +197,32 @@ export class EvolutionClient {
     return result.data ?? {};
   }
 
+  async getSettings(instanceName: string): Promise<{
+    rejectCall?: boolean;
+    msgCall?: string;
+    groupsIgnore?: boolean;
+    alwaysOnline?: boolean;
+    readMessages?: boolean;
+    readStatus?: boolean;
+    syncFullHistory?: boolean;
+    [key: string]: unknown;
+  } | null> {
+    const result = await this.request<Record<string, unknown>>(
+      'GET',
+      `/settings/find/${encodeURIComponent(instanceName)}`,
+    );
+    if (!result.ok || !result.data) return null;
+    return result.data as {
+      rejectCall?: boolean;
+      msgCall?: string;
+      groupsIgnore?: boolean;
+      alwaysOnline?: boolean;
+      readMessages?: boolean;
+      readStatus?: boolean;
+      syncFullHistory?: boolean;
+    };
+  }
+
   async setSettings(params: {
     instanceName: string;
     rejectCall?: boolean;

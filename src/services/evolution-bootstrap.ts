@@ -175,20 +175,66 @@ export async function bootstrapEvolution(): Promise<EvolutionBootstrapResult | n
  * Idempotente — pode rodar toda vez que o agente sobe sem efeito colateral.
  */
 async function applyDefaultSettings(instanceName: string): Promise<void> {
-  try {
-    const evolution = getEvolutionClient();
-    await evolution.setSettings({
-      instanceName,
-      groupsIgnore: true,
-      readMessages: false,
-      readStatus: false,
-      rejectCall: false,
-    });
-    logger.info({ instanceName }, 'Evolution default settings applied');
-  } catch (err) {
-    logger.warn(
-      { err: err instanceof Error ? err.message : String(err), instanceName },
-      'failed to apply default settings (instance still functional)',
-    );
+  // Delay inicial: Evolution v2.3.7 às vezes rejeita /settings/set logo após
+  // o /instance/create porque a instância ainda está finalizando init interno.
+  await new Promise((r) => setTimeout(r, 3_000));
+
+  const evolution = getEvolutionClient();
+  const maxAttempts = 3;
+  let lastError: unknown = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      await evolution.setSettings({
+        instanceName,
+        groupsIgnore: true,
+        readMessages: false,
+        readStatus: false,
+        rejectCall: false,
+        msgCall: '',
+        alwaysOnline: false,
+        syncFullHistory: false,
+      });
+      logger.info(
+        { instanceName, attempt },
+        'Evolution default settings applied',
+      );
+
+      // Verifica que pegou de fato (Evolution v2 às vezes responde 200 mas
+      // não persiste se enviado antes da instância estar 100% pronta).
+      const verify = await evolution.getSettings(instanceName).catch(() => null);
+      if (verify && verify.groupsIgnore !== true) {
+        logger.warn(
+          { instanceName, attempt, verify },
+          'settings POST returned 200 but groupsIgnore is still false; retrying',
+        );
+        lastError = new Error('settings did not persist');
+        await new Promise((r) => setTimeout(r, 2_000));
+        continue;
+      }
+      return;
+    } catch (err) {
+      lastError = err;
+      logger.warn(
+        {
+          err: err instanceof Error ? err.message : String(err),
+          instanceName,
+          attempt,
+          maxAttempts,
+        },
+        'apply default settings failed; will retry',
+      );
+      if (attempt < maxAttempts) {
+        await new Promise((r) => setTimeout(r, 2_000));
+      }
+    }
   }
+
+  logger.warn(
+    {
+      err: lastError instanceof Error ? lastError.message : String(lastError),
+      instanceName,
+    },
+    'failed to apply default settings after retries (instance still functional, configure manually in Evolution Manager)',
+  );
 }
