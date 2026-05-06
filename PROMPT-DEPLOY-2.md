@@ -25,6 +25,8 @@ prompts.
 REGRAS
 - VOCÊ não mexe no Postgres nem no Evolution (estão prontos).
 - VOCÊ NUNCA clica em Edit/Disconnect/Restart/Eject de service algum.
+- VOCÊ NÃO RENOMEIA NADA. Não renomeia o service, não renomeia o projeto,
+  não renomeia o grupo. Deixa todos os nomes como o Railway gerou.
 
 PASSO A PASSO
 
@@ -44,20 +46,37 @@ PASSO A PASSO
 
 5) Branch: deixa "main" (default).
 
-6) Confirma. Railway começa o build. Pode demorar 5-7 minutos — Dockerfile
-   instala Chromium pro Playwright (~400MB extra). NÃO É FALHA, é o tempo
-   normal. Continua os próximos passos enquanto builda.
+6) Confirma. Railway adiciona o service. NÃO RENOMEIA o service — deixa
+   o nome que veio do repo (ex: "agente-ia-whatsapp"). NÃO renomeia
+   também o grupo nem o projeto.
 
-7) Renomeia o service pra "Agente":
-   a) 3 pontinhos no card → "Rename" OU Settings → Service Name.
-   b) Coloca "Agente".
+7) ⚠️ Generate Domain HTTP — passo OBRIGATÓRIO ANTES das env vars:
 
-8) Configura env vars via Raw Editor (antes do build terminar tudo bem):
-   a) Clica no card do Agente.
-   b) Aba "Variables" (topo).
-   c) Clica "Raw Editor".
-   d) APAGA o que tiver (geralmente vazio ou só PORT).
-   e) COLA o bloco INTEIRO abaixo (sem mexer — referências ${{...}} são
+   IMPORTANTE: você TEM que gerar o domain ANTES de configurar as env vars
+   e apertar Deploy. Senão a variável RAILWAY_PUBLIC_DOMAIN fica vazia, a
+   PUBLIC_URL resolve pra "https://" (URL inválida), Zod rejeita no boot
+   e o agente falha em "Healthcheck failure".
+
+   a) No painel do service recém-criado, clica aba "Settings".
+   b) Rola até a seção "Networking".
+   c) DENTRO de "Networking", você vai ver duas subseções:
+        - "Public Networking" — É AQUI que você clica.
+        - "Private Networking" — IGNORA, esse é interno entre services.
+   d) Em "Public Networking", tem 3 botões:
+        - "Generate Domain" (com ícone de raio) ← CLICA NESSE
+        - "Custom Domain" — IGNORA
+        - "TCP Proxy" — IGNORA, é pra serviços não-HTTP tipo banco.
+   e) Clica EXCLUSIVAMENTE em "Generate Domain". Railway vai gerar uma
+      URL HTTP pública, formato:
+      agente-ia-whatsapp-production-XXXX.up.railway.app
+   f) Confirma que a URL apareceu listada na seção "Public Networking".
+      Se NÃO apareceu, NÃO siga adiante — me avisa.
+
+8) Configura env vars via Raw Editor:
+   a) Volta na aba "Variables" do service (topo).
+   b) Clica "Raw Editor".
+   c) APAGA o que tiver (geralmente vazio ou só PORT).
+   d) COLA o bloco INTEIRO abaixo (sem mexer — referências ${{...}} são
       resolvidas pelo Railway):
 
 ```text
@@ -71,15 +90,16 @@ PUBLIC_URL=https://${{RAILWAY_PUBLIC_DOMAIN}}
 OPENAI_API_KEY=__OPENAI_KEY__
 ```
 
-   f) Clica "Update Variables".
-   g) Banner topo → "Deploy". Aguarda redeploy começar.
+   e) Clica "Update Variables".
 
-9) Generate Domain HTTP no Agente:
-   a) Settings → Networking
-   b) "Public Networking" → "Generate Domain"
-   c) URL pública vai aparecer (formato:
-      agente-production-XXXX.up.railway.app ou similar).
-   d) URL fica visível IMEDIATAMENTE, mas o service ainda tá buildando.
+9) ⚠️ APLICA AS MUDANÇAS — passo OBRIGATÓRIO, NÃO PULE:
+   a) Olha pro topo da tela do projeto. Vai ter um banner roxo
+      "Apply N changes" com botão "Deploy ⇧+Enter".
+   b) CLICA NO BOTÃO "Deploy" desse banner. Sem esse click, NADA é
+      aplicado e o build não começa com as env vars.
+   c) Aguarda o banner sumir. Service vai pra status "Building".
+   d) Build vai demorar 5-7 minutos (Dockerfile instala Chromium pro
+      Playwright, ~400MB extra). NÃO É FALHA — é o tempo normal.
 
 10) ⏸ FIM. Diga:
 
