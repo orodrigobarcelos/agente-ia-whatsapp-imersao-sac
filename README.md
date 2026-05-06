@@ -1,6 +1,10 @@
 # Agente IA pra WhatsApp — Template Simplificado
 
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/lwxg0j?referralCode=TOg9K1)
+
 Template plug-and-play. **Você sai dessa página com um agente de IA respondendo no WhatsApp em ~1h30**, sem terminal, sem editar código.
+
+> **Sobre o botão acima:** ele deploya APENAS a infra (Postgres + Evolution). O service do Agente é criado depois pelo Claude Code apontando pro **teu repo privado no GitHub**. Não use o botão sem seguir o fluxo do `CLAUDE.md` — você precisa do Claude Code pra fazer o setup completo.
 
 ---
 
@@ -48,9 +52,9 @@ Ele vai ler o [`CLAUDE.md`](./CLAUDE.md) e te conduzir do começo ao fim:
 
 1. **Setup GitHub** — verifica/instala `gh` CLI, faz OAuth, cria teu repo privado e dá push inicial do código.
 2. **OpenAI key** — você cola no chat.
-3. **Magic Prompt #1** (Postgres) — Chrome cria projeto Railway + Postgres + TCP Proxy.
-4. **Magic Prompt #2** (Evolution) — Chrome adiciona o gateway WhatsApp.
-5. **Magic Prompt #3** (Agente) — Chrome conecta Railway no TEU repo GitHub e builda o agente (build leva 5-7 min — instala Chromium pro Playwright).
+3. **Magic Prompt #1** — Chrome deploya o template Railway (Postgres + Evolution) + habilita TCP Proxy + extrai DATABASE_PUBLIC_URL.
+4. **Magic Prompt #2** — Chrome adiciona o service Agente puxando do TEU repo GitHub privado (build leva 5-7 min — instala Chromium pro Playwright).
+5. **Magic Prompt #3** — Chrome aguarda o build terminar e extrai a URL pública do Agente.
 6. **Restart Claude Code** pra carregar MCP Postgres.
 7. **Entrevista** — 10 perguntas pra montar a personalidade do agente.
 8. **QR Code** — escaneia com seu chip.

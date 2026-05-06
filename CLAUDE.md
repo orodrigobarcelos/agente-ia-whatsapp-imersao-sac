@@ -169,11 +169,11 @@ Quando ele colar:
 - Se inválida: peça de novo, explicando.
 - Se válida: guarde mentalmente como `OPENAI_KEY` (não escreva em arquivo ainda).
 
-### Passo 3 — Magic Prompt #1 (Postgres + TCP Proxy + DATABASE_PUBLIC_URL)
+### Passo 3 — Magic Prompt #1 (deploy template Railway + TCP Proxy + DATABASE_PUBLIC_URL)
 
 Leia `PROMPT-DEPLOY-1.md` e entregue o conteúdo do bloco `## Prompt` num bloco copiável. **Esse prompt não tem placeholder** — entrega bruto.
 
-> "Beleza, tua key tá comigo. Agora vamos criar o projeto Railway e o banco de dados. Copia esse prompt aqui e cola no Claude for Chrome (clica no ícone da extensão e cola lá):"
+> "Beleza, tua key tá comigo. Agora vamos deployar a infra do agente (Postgres + Evolution) na Railway. Copia esse prompt aqui e cola no Claude for Chrome (clica no ícone da extensão e cola lá):"
 >
 > ```
 > [conteúdo bruto de PROMPT-DEPLOY-1.md, bloco ## Prompt]
@@ -181,7 +181,7 @@ Leia `PROMPT-DEPLOY-1.md` e entregue o conteúdo do bloco `## Prompt` num bloco 
 >
 > "Quando o Chrome terminar, ele vai te dar UMA URL (a do Postgres). Volta aqui e cola pra mim."
 
-### Passo 4 — Recebe DATABASE_PUBLIC_URL + entrega Magic Prompt #2 (Evolution)
+### Passo 4 — Recebe DATABASE_PUBLIC_URL + entrega Magic Prompt #2 (Agente do GitHub)
 
 Quando ele colar a URL (deve começar com `postgresql://postgres:`):
 
@@ -200,40 +200,37 @@ Quando ele colar a URL (deve começar com `postgresql://postgres:`):
 
 3. Crie `.mcp.json` (sobrescrevendo qualquer `.example`) com a URL substituída no campo `--connection-string`.
 
-4. **Gera `EVOLUTION_API_KEY`** (string aleatória, 32 chars hex):
-   ```bash
-   openssl rand -hex 32
-   ```
-   Guarda esse valor em memória da conversa — vai usar no Prompt #2 e Prompt #3.
-
-5. Leia `PROMPT-DEPLOY-2.md`, **substitua o placeholder `__EVOLUTION_API_KEY__` pela key gerada**, e entregue:
-
-   > "Salvei a URL do Postgres. Agora copia esse SEGUNDO prompt e cola no MESMO chat do Claude for Chrome (continua a conversa anterior, NÃO abre uma nova):"
-   >
-   > ```
-   > [conteúdo de PROMPT-DEPLOY-2.md com placeholder substituído]
-   > ```
-   >
-   > "Quando o Chrome terminar de configurar o Evolution, ele vai te avisar 'pronto'. Volta aqui e me diz."
-
-### Passo 5 — Confirmação Evolution + entrega Magic Prompt #3 (Agente)
-
-Quando o aluno disser que o Chrome terminou o Prompt #2 ("pronto", "Evolution rodando", etc.):
-
-1. Leia `PROMPT-DEPLOY-3.md` e **substitua os 3 placeholders**:
+4. Leia `PROMPT-DEPLOY-2.md` e **substitua os 2 placeholders**:
    - `__GITHUB_REPO__` → `<username>/<repo_name>` (do Passo 1.5)
-   - `__EVOLUTION_API_KEY__` → mesma key gerada no Passo 4
    - `__OPENAI_KEY__` → key do Passo 2
+
+   *(`EVOLUTION_API_KEY` NÃO precisa ser substituída — o Prompt #2 usa referência interna `${{Evolution.AUTHENTICATION_API_KEY}}` que Railway resolve sozinho.)*
+
+5. Entrega:
+
+   > "Salvei a URL do Postgres. Agora copia esse SEGUNDO prompt e cola no MESMO chat do Claude for Chrome (continua a conversa anterior, NÃO abre uma nova). Esse prompt cria o service do Agente puxando do teu repo GitHub:"
+   >
+   > ```
+   > [conteúdo de PROMPT-DEPLOY-2.md com placeholders substituídos]
+   > ```
+   >
+   > "Build leva 5-7 min (instala Chromium). Quando o Chrome terminar de configurar e mandar buildar, ele vai te avisar 'pronto'. Volta aqui e me diz."
+
+### Passo 5 — Confirmação Agente buildando + entrega Magic Prompt #3 (extrai AGENT_URL)
+
+Quando o aluno disser que o Chrome terminou o Prompt #2 ("pronto", "Agente buildando", etc.):
+
+1. Leia `PROMPT-DEPLOY-3.md` (sem placeholder — entrega bruto).
 
 2. Entrega:
 
-   > "Beleza, agora o último prompt. Esse aqui o Chrome vai conectar a Railway no teu GitHub e subir o agente. Build leva uns 5-7 min (instala Chromium pro Playwright). Cola NO MESMO chat do Chrome:"
+   > "Último prompt. Esse aqui o Chrome só espera o build terminar e te dá a URL pública do Agente. Cola NO MESMO chat do Chrome:"
    >
    > ```
-   > [conteúdo de PROMPT-DEPLOY-3.md com placeholders substituídos]
+   > [conteúdo bruto de PROMPT-DEPLOY-3.md]
    > ```
    >
-   > "Quando o Chrome te der a URL do Agente, volta aqui e cola pra mim."
+   > "Quando o Chrome te der a URL do Agente (depois do build terminar), volta aqui e cola pra mim."
 
 ### Passo 6 — Recebe AGENT_URL e prepara restart
 
