@@ -1,131 +1,95 @@
-# Magic Prompt — Deploy Railway via Claude for Chrome
+# Magic Prompt #1 — Deploy + DATABASE_PUBLIC_URL
 
-> **Não cola esse arquivo direto.** Quem entrega o prompt final pro aluno é o **Claude Code app desktop**, que substitui `__OPENAI_KEY__` pela key real antes de exibir.
+> Esse é o **primeiro de dois** prompts pra Claude for Chrome. Esse aqui só
+> deploya e extrai a URL do Postgres. O **segundo prompt** (PROMPT-AGENT-URL.md)
+> só extrai a URL do Agente.
 >
-> Aluno usa apenas o resultado processado pelo Claude Code, copia, e cola no **Claude for Chrome**.
+> O Claude Code app desktop substitui `__OPENAI_KEY__` pela key real antes de
+> entregar pro aluno.
 
 ---
 
 ## Prompt (o que vai pro Chrome)
 
 ```
-Você é meu assistente de deploy. Seu trabalho é colocar um agente de IA pra
-WhatsApp no ar na Railway, sem que eu precise navegar nada manualmente.
+Você é meu assistente de deploy. Vai colocar um agente de IA pra WhatsApp no
+ar na Railway. Esse é o PRIMEIRO de dois prompts. Aqui você só deploya e me
+entrega a URL do Postgres. Outro prompt, depois, vai extrair a URL do Agente.
 
 CONTEXTO
 - Já tenho conta Railway com cartão cadastrado.
-- Já tenho o template Railway na URL: https://railway.com/deploy/FPInUA?referralCode=TOg9K1
+- Template Railway: https://railway.com/deploy/FPInUA?referralCode=TOg9K1
 - Minha OpenAI API key é: __OPENAI_KEY__
-- Você vai criar um deploy desse template, esperar subir, e me devolver 2 URLs.
+
+REGRAS GLOBAIS
+- Você NUNCA toca em "Settings", "Networking", "Generate Domain", "TCP Proxy"
+  ou qualquer botão de configuração. O template já provisionou tudo.
+- Você NUNCA clica em "Edit", "Disconnect", "Restart", "Redeploy".
+- Sua única atividade pós-Deploy é: hover em uma linha de variável → ícone de
+  COPY → colar no chat. NADA além.
 
 PASSO A PASSO
 
 1) Abre uma aba em https://railway.com/deploy/FPInUA?referralCode=TOg9K1
 
-2) Se eu não estiver logado: me peça pra logar (eu logo). Aguarde retornar logado.
+2) Se eu não estiver logado: me peça pra logar. Aguarde retornar logado.
 
-3) Quando aparecer a tela "Configure" do template:
-   - Encontra o card do serviço chamado "Agente" (ou "agente-ia-whatsapp-imersao-sac").
-   - No campo OPENAI_API_KEY desse card: cole exatamente "__OPENAI_KEY__".
+3) Tela "Configure" do template:
+   - Encontra o card do serviço "Agente" (ou "agente-ia-whatsapp-imersao-sac").
+   - No campo OPENAI_API_KEY desse card: cole "__OPENAI_KEY__".
    - Em todos os outros campos/serviços (Postgres, Evolution): deixe os defaults.
-   - **Clica em "Save Config" DENTRO do card do Agente** (botão roxo no canto
-     direito do card). Sem isso, a key não é salva e o Deploy vai falhar.
+   - Clica "Save Config" DENTRO do card do Agente (botão roxo no canto direito).
    - Confirma que apareceu "Ready to be deployed" no card do Agente.
 
-4) Clica no botão grande "Deploy" lá embaixo da tela e me confirma que clicou.
+4) Clica no botão grande "Deploy" lá embaixo. Me confirma que clicou.
 
 5) Espera os 3 serviços subirem (Postgres → Evolution → Agente).
-   Pode levar 3-5 minutos. Pergunte de tempos em tempos se quero aguardar mais.
-   Quando os 3 estiverem com status "Active" / "Online", siga.
+   Pode levar 3-5 minutos. Quando os 3 estiverem "Active" / "Online", siga.
 
-   IMPORTANTE: nesse momento o Railway redireciona pra um NOVO projeto (com nome
-   aleatório tipo "mindful-benevolence" ou "disciplined-education"). É NESSE
-   projeto novo que você vai trabalhar nos próximos passos — NÃO confunda com
-   outros projetos que eu já tenha na conta.
+   Railway vai redirecionar pra um NOVO projeto (nome aleatório tipo
+   "respectful-bravery"). É NESSE projeto novo que você trabalha. NÃO confunda
+   com outros projetos antigos da minha conta.
 
-6) FASE 1 — pegar SOMENTE a URL do Postgres. Passos exatos, sem desviar:
+6) Pega a URL do Postgres:
 
-   a) No projeto NOVO, clica no card do serviço "Postgres".
-   b) Painel abre. Clica na aba "Variables" (no topo).
-   c) Lista de ~13 variáveis aparece, cada uma com valor mascarado ("*******").
+   a) Clica no card do serviço "Postgres" no canvas do projeto.
+   b) Painel abre. Clica na aba "Variables".
+      ATENÇÃO: NÃO clica em Settings. NÃO clica em Database. APENAS Variables.
+   c) Lista de ~13 variáveis aparece, cada linha com valor mascarado ("*******").
    d) Encontra a linha "DATABASE_PUBLIC_URL" (geralmente a primeira da lista,
       com "PUBLIC" no nome). NÃO é a "DATABASE_URL" sem PUBLIC.
-   e) Passa o mouse sobre essa linha (hover). Aparecem 2 ícones do lado direito
-      dos asteriscos:
-         - 👁 olho (revela o valor visualmente)
-         - 📋 duas páginas sobrepostas (COPY — copia o valor resolvido pro clipboard)
-   f) Clica no ícone de COPY (📋, duas páginas sobrepostas). Esse é o ÚNICO
-      caminho que copia o VALOR RESOLVIDO. NÃO uses Raw Editor (mostra
-      referências tipo "${{POSTGRES_PASSWORD}}", não o valor).
-      NÃO uses 3 pontinhos → Edit (mesma coisa, mostra referências).
-      É APENAS o ícone de COPY na própria linha da variável.
+   e) Hover sobre a linha do DATABASE_PUBLIC_URL. Aparecem 2 ícones do lado
+      direito dos asteriscos:
+         - 👁 olho (revela visualmente)
+         - 📋 duas páginas sobrepostas (COPY)
+   f) Clica no ícone 📋 (COPY). O valor REAL é copiado pro clipboard.
+      Esse é o ÚNICO caminho que copia o valor resolvido.
+      NÃO usa Raw Editor (mostra referências, não funciona).
+      NÃO usa 3 pontinhos > Edit (mesma coisa, não funciona).
    g) Cola o valor copiado AQUI NO CHAT pra eu ver. Formato esperado:
       postgresql://postgres:SENHA@trolley.proxy.rlwy.net:PORTA/railway
 
-   ⏸ STOP. PARA AQUI. NÃO clica mais em nada.
+7) ⏸ FIM. Você terminou.
 
-   Espera EU (usuário) responder no chat com "ok, pode continuar".
+   Diga: "pronto, copia a URL acima e cola no Claude Code. Ele vai te dar o
+   próximo prompt pra eu pegar a URL do Agente."
 
-   Por que parar: se você pegou a URL errada (DATABASE_URL em vez de
-   DATABASE_PUBLIC_URL, ou outra var qualquer), eu vou ver e te corrigir antes
-   de você navegar pra outro serviço.
+   Espera. NÃO faça mais nada. NÃO navegue. NÃO feche aba. NÃO toque em outros
+   serviços. Apenas espera o aluno voltar com novo prompt.
 
-   Se eu disser "tá errado, é a outra" → volta na lista (passo d), pega a
-   correta (passo e-f), cola no chat (passo g), e espera confirmação de novo.
-
-   Se eu disser "ok, pode continuar" → segue pra FASE 2 (passo 7).
-
-7) FASE 2 — só execute APÓS eu ter confirmado a URL do passo 6.
-
-   Primeiro, FECHA o painel do Postgres:
-   - Clica no X grande do canto SUPERIOR DIREITO do painel do Postgres
-     (o X que fecha o painel inteiro do serviço).
-   - Confirma que voltou pra view geral do projeto onde os 3 cards (Postgres,
-     Evolution, Agente) ficam visíveis lado a lado no canvas.
-
-   Agora identifica os 3 cards na view geral:
-     - Postgres (ícone de elefante azul)
-     - Evolution (ícone do logo Evolution verde)
-     - Agente (ícone do GitHub, nome "agente-ia-whatsapp-imersao-sac")
-
-   Clica no TERCEIRO — o do GitHub. NÃO é o Postgres, NÃO é o Evolution.
-
-   - O painel abre na aba "Deployments".
-   - Logo abaixo do nome do serviço, no topo dessa aba, aparece a URL pública
-     já gerada (formato https://agente-ia-whatsapp-imersao-sac-production-XXX.up.railway.app).
-   - COPIA essa URL pública (clica nela ou no ícone de copy ao lado).
-   - Cola AQUI NO CHAT pra mim ver.
-
-   (Não precisa ir em Settings → Networking. A URL aparece direto em Deployments.)
-
-   ⏸ STOP de novo. Espera eu responder "ok, pode continuar" antes do passo 8.
-
-8) FASE 3 — só execute APÓS confirmação das duas URLs.
-
-   Me devolve as 2 URLs num bloco copiável EXATAMENTE neste formato (sem nada
-   além, pra eu colar de uma vez):
-
-   DATABASE_URL=<valor de POSTGRES_URL>
-   AGENT_URL=<valor de AGENT_URL>
-
-9) Diga "pronto, agora volta no Claude Code e cola essas 2 URLs lá".
-
-REGRAS
-- Não invente URLs. Se não conseguir achar alguma, me avise.
-- Se o deploy travar com erro, copie a mensagem de erro e me mostre.
-- Não toque em outras configurações além das instruídas.
-- Se eu pedir pra parar a qualquer momento, pare.
-- Se cair em projeto errado (ex: um projeto antigo da minha conta), volta pro
-  projeto que foi criado AGORA pelo template — geralmente é o mais recente na
-  listagem do dashboard Railway.
+REGRAS FINAIS
+- Não invente URLs. Se não conseguir achar alguma, me avise e pare.
+- Se o deploy travar com erro, copie a mensagem e me mostre.
+- Se eu pedir pra parar a qualquer momento, pare imediatamente.
+- NUNCA toque em Settings. NUNCA habilite nada. NUNCA configure nada.
 ```
 
 ---
 
 ## Notas pra você (Rodrigo)
 
-1. **URL do template Railway** já preenchida: `https://railway.com/deploy/FPInUA?referralCode=TOg9K1`. Se publicar versão nova do template, atualize as 2 ocorrências aqui.
-
-2. **`__OPENAI_KEY__`** é o placeholder que o Claude Code substitui em tempo real (instrução tá no `CLAUDE.md`).
-
-3. **Versão fallback** (sem Claude for Chrome): se um aluno não conseguir usar o Chrome, ele faz os passos 1-7 manualmente seguindo `docs/RAILWAY_VIA_CHROME.md`.
+1. URL do template já preenchida.
+2. `__OPENAI_KEY__` é placeholder substituído pelo Claude Code em runtime.
+3. Após esse prompt, o aluno volta no Claude Code com a `DATABASE_PUBLIC_URL`.
+4. Claude Code escreve `.env.local` + `.mcp.json` e entrega o **PROMPT #2**
+   (`PROMPT-AGENT-URL.md`) pra extrair a URL do Agente.

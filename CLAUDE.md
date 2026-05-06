@@ -45,7 +45,7 @@ Quando ele colar:
 - Se inválida: peça de novo, explicando.
 - Se válida: guarde mentalmente como `OPENAI_KEY` (não escreva em arquivo ainda).
 
-### Passo 2 — Magic Prompt do Chrome (deploy)
+### Passo 2 — Magic Prompt #1 do Chrome (deploy + DATABASE_PUBLIC_URL)
 
 Leia `PROMPT-DEPLOY.md`, **substitua o placeholder `__OPENAI_KEY__` pela key que o aluno colou**, e entregue o resultado num bloco copiável:
 
@@ -55,20 +55,59 @@ Leia `PROMPT-DEPLOY.md`, **substitua o placeholder `__OPENAI_KEY__` pela key que
 > [conteúdo de PROMPT-DEPLOY.md com a key substituída]
 > ```
 >
-> "Quando o Chrome terminar, ele vai te dar 2 URLs: a do **DATABASE_PUBLIC_URL** e a do **agente** na Railway. Volta aqui e cola as duas pra mim."
+> "Quando o Chrome terminar, ele vai te dar UMA URL (a do Postgres). Volta aqui e cola pra mim. Aí eu te dou o segundo prompt pra ele pegar a URL do Agente."
 
-### Passo 3 — Recebe URLs do aluno
+### Passo 3 — Recebe DATABASE_PUBLIC_URL
 
-Quando ele colar as URLs:
+Quando ele colar a URL (deve começar com `postgresql://postgres:`):
 
-1. Crie `.env.local` com:
+1. Valide o formato:
+   - Começa com `postgresql://`
+   - Tem `@` no meio (separando user:senha do host)
+   - Termina em `/railway` ou similar
+   - Se inválida: peça de novo.
+
+2. Crie `.env.local` com (parcial, só o DATABASE_URL por enquanto):
    ```
-   DATABASE_URL=<DATABASE_PUBLIC_URL que ele colou>
-   AGENT_URL=<URL pública do agente>
+   DATABASE_URL=<URL_QUE_ELE_COLOU>
+   AGENT_URL=
    ```
-2. Crie `.mcp.json` (sobrescrevendo o `.example`) com a `DATABASE_URL` substituída.
+
+3. Crie `.mcp.json` (sobrescrevendo qualquer `.example`) com a URL substituída
+   no campo `--connection-string`.
+
+4. Leia `PROMPT-AGENT-URL.md` (não precisa substituir nada — esse prompt não
+   tem placeholder) e entregue:
+
+   > "Salvei a URL do Postgres. Agora copia esse SEGUNDO prompt e cola no MESMO
+   > chat do Claude for Chrome (continua a conversa anterior, não abre nova):"
+   >
+   > ```
+   > [conteúdo bruto de PROMPT-AGENT-URL.md]
+   > ```
+   >
+   > "Quando o Chrome te der a URL do Agente, volta aqui e cola pra mim."
+
+### Passo 4 — Recebe AGENT_URL
+
+Quando ele colar a URL do Agente (deve começar com `https://` e terminar em
+`.railway.app`):
+
+1. Valide o formato:
+   - Começa com `https://`
+   - Termina com `.railway.app` ou similar
+   - Se inválida: peça de novo.
+
+2. Atualize `.env.local`, preenchendo o `AGENT_URL=`:
+   ```
+   DATABASE_URL=<a do passo 3>
+   AGENT_URL=<URL_DO_AGENTE>
+   ```
+
 3. Diga:
-   > "Salvei tuas URLs. **Agora preciso que você feche e abra o Claude Code** (ele só carrega o MCP Postgres no startup). Quando voltar, abre essa mesma pasta e me diz 'pronto'."
+   > "Salvei tuas 2 URLs. **Agora preciso que você feche e abra o Claude Code**
+   > (ele só carrega o MCP Postgres no startup). Quando voltar, abre essa mesma
+   > pasta e me diz 'pronto'."
 
 ### Passo 4 — Volta do restart
 
