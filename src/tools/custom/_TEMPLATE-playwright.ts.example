@@ -1,9 +1,18 @@
+/// <reference lib="dom" />
 /**
  * TEMPLATE de tool com Playwright (browser automation).
  *
  * Esse arquivo NÃO é importado automaticamente (extensão .example).
  * O Claude Code usa esse template como base quando o aluno pede
  * uma tool que precisa abrir um site, clicar, extrair info, etc.
+ *
+ * IMPORTANTE: a primeira linha (`/// <reference lib="dom" />`) é
+ * OBRIGATÓRIA. Ela faz o TypeScript reconhecer `document`, `window`
+ * e outros tipos de DOM dentro de callbacks de `page.evaluate(...)`,
+ * que rodam DENTRO do navegador (não no Node). Sem essa linha, o
+ * build da Railway falha com `error TS2584: Cannot find name
+ * 'document'`. Mantenha essa linha em TODA tool que usar
+ * `page.evaluate()` ou similar.
  *
  * Padrão de uso:
  *   1. Claude Code copia esse arquivo pra src/tools/custom/<nome>.ts

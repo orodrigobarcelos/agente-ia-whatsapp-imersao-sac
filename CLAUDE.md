@@ -424,6 +424,8 @@ cp src/tools/custom/_TEMPLATE-playwright.ts.example src/tools/custom/<nome>.ts
 
 Edita name, description, parameters, lógica de scraping (URL, seletores).
 
+⚠️ **PRESERVA a primeira linha do template:** `/// <reference lib="dom" />`. Ela faz o TypeScript reconhecer `document`, `window` e outros tipos do DOM dentro de callbacks de `page.evaluate(...)`. Sem essa linha, o build da Railway falha com `error TS2584: Cannot find name 'document'`. Toda tool que usar `page.evaluate()` (ou qualquer API de DOM dentro do browser) precisa dessa linha. Tools que só usam `page.locator().textContent()`, `page.click()`, etc. (API server-side) **não** precisam — mas manter a linha não causa problema.
+
 #### 4. Strict mode — regras dos `parameters`
 
 **SEMPRE** (senão OpenAI rejeita):
