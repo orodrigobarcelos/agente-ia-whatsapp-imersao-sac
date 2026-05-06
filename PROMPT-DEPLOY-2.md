@@ -76,19 +76,19 @@ PASSO A PASSO
    a) Volta na aba "Variables" do service (topo).
    b) Clica "Raw Editor".
    c) APAGA o que tiver (geralmente vazio ou só PORT).
-   d) COLA o bloco INTEIRO abaixo (sem mexer — referências ${{...}} são
-      resolvidas pelo Railway):
+   d) COLA TUDO ENTRE AS LINHAS DE === ABAIXO no Raw Editor (NÃO inclui
+      as próprias linhas de === — só o conteúdo entre elas):
 
-```text
-NODE_ENV=production
-LOG_LEVEL=info
-DATABASE_URL=${{Postgres.DATABASE_URL}}
-EVOLUTION_URL=http://${{Evolution.RAILWAY_PRIVATE_DOMAIN}}:8080
-EVOLUTION_API_KEY=${{Evolution.AUTHENTICATION_API_KEY}}
-EVOLUTION_INSTANCE=agente
-PUBLIC_URL=https://${{RAILWAY_PUBLIC_DOMAIN}}
-OPENAI_API_KEY=__OPENAI_KEY__
-```
+   ============================================================
+   NODE_ENV=production
+   LOG_LEVEL=info
+   DATABASE_URL=${{Postgres.DATABASE_URL}}
+   EVOLUTION_URL=http://${{Evolution.RAILWAY_PRIVATE_DOMAIN}}:8080
+   EVOLUTION_API_KEY=${{Evolution.AUTHENTICATION_API_KEY}}
+   EVOLUTION_INSTANCE=agente
+   PUBLIC_URL=https://${{RAILWAY_PUBLIC_DOMAIN}}
+   OPENAI_API_KEY=__OPENAI_KEY__
+   ============================================================
 
    e) Clica "Update Variables".
 
