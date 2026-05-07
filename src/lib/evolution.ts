@@ -13,6 +13,37 @@ export class EvolutionError extends Error {
   }
 }
 
+/**
+ * Substrings que aparecem no body do erro 400 do Evolution quando o
+ * Baileys subjacente tá num estado transitoriamente inconsistente
+ * (sync inicial pesado, conexão WebSocket reset, race entre eventos).
+ * Esses casos costumam resolver em segundos sem precisar reset da
+ * instance — basta dar tempo e tentar de novo.
+ */
+const TRANSIENT_ERROR_INDICATORS = [
+  'connection closed',
+  'connection lost',
+  'operation aborted',
+  'this operation was aborted',
+  'timed out',
+  'timeout',
+  'socket hang up',
+  'econnreset',
+];
+
+export function isTransientEvolutionError(
+  status: number,
+  body: string,
+): boolean {
+  if (status >= 500) return true;
+  if (status === 408 || status === 409 || status === 503) return true;
+  if (status === 400) {
+    const lower = body.toLowerCase();
+    return TRANSIENT_ERROR_INDICATORS.some((ind) => lower.includes(ind));
+  }
+  return false;
+}
+
 export interface SendTextResult {
   messageId: string;
   raw: unknown;
@@ -97,25 +128,65 @@ export class EvolutionClient {
     const number = to.includes('@') ? to : normalizePhone(to);
     if (!number) throw new Error(`invalid phone: ${to}`);
 
-    const result = await this.request<unknown>(
-      'POST',
-      `/message/sendText/${encodeURIComponent(instance)}`,
-      { number, text },
-    );
+    // Retry com backoff em erros transitórios do Baileys/Evolution:
+    //  - 400 com "Connection Closed" / "operation aborted" / "timed out"
+    //    → state interno do Baileys ficou stale após sync inicial pesado
+    //  - 5xx → server error (raro mas trata igual)
+    // 4 tentativas total: imediata, +5s, +15s, +30s = ~50s no pior caso.
+    // Webhook do Evolution já foi confirmado (200) lá no início, então
+    // esse atraso só impacta UX (cliente WhatsApp vê "digitando..." mais
+    // tempo). Erros permanentes (404, 422) NÃO retentam.
+    const delaysMs = [0, 5_000, 15_000, 30_000];
+    let lastStatus = 0;
+    let lastBody = '';
+    let lastData: unknown = null;
 
-    if (!result.ok) {
-      logger.warn(
-        { status: result.status, body: result.raw, instance, to: number },
-        'evolution sendText failed',
+    for (let attempt = 0; attempt < delaysMs.length; attempt++) {
+      if (delaysMs[attempt]! > 0) {
+        logger.info(
+          {
+            instance,
+            to: number,
+            attempt: attempt + 1,
+            delay_ms: delaysMs[attempt],
+            last_status: lastStatus,
+          },
+          'evolution sendText retrying after transient error',
+        );
+        await new Promise((r) => setTimeout(r, delaysMs[attempt]));
+      }
+
+      const result = await this.request<unknown>(
+        'POST',
+        `/message/sendText/${encodeURIComponent(instance)}`,
+        { number, text },
       );
-      throw new EvolutionError(
-        `Evolution sendText failed: ${result.status}`,
-        result.status,
-        result.raw,
-      );
+      lastStatus = result.status;
+      lastBody = result.raw;
+      lastData = result.data;
+
+      if (result.ok) {
+        return {
+          messageId: extractMessageId(result.data),
+          raw: result.data ?? {},
+        };
+      }
+
+      if (!isTransientEvolutionError(result.status, result.raw)) {
+        break; // erro permanente — não retenta
+      }
     }
 
-    return { messageId: extractMessageId(result.data), raw: result.data ?? {} };
+    logger.warn(
+      { status: lastStatus, body: lastBody, instance, to: number },
+      'evolution sendText failed after retries',
+    );
+    void lastData;
+    throw new EvolutionError(
+      `Evolution sendText failed: ${lastStatus}`,
+      lastStatus,
+      lastBody,
+    );
   }
 
   async sendPresence(

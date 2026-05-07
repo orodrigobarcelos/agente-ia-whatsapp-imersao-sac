@@ -134,6 +134,49 @@ Se tiver outra coisa, edita pra esse valor exato. Salva. Redeploy.
 
 ---
 
+### "Conectou no WhatsApp mas mensagens não chegam OU agente responde mas cliente não recebe"
+
+**Sintoma:** página `/qr` mostra "✅ Conectado". Cliente manda mensagem. Agente até processa (linha em `chat_messages` aparece) mas:
+- ou a mensagem nunca chega (Evolution não dispara webhook)
+- ou agente gera resposta mas `status = 'failed'` com erro `Connection Closed` ou `operation aborted`
+
+**Causa raiz:** state interno do Baileys (lib que Evolution usa) ficou inconsistente após sync inicial pesado. `connectionState` mente dizendo `open` mas socket WebSocket interno tá quebrado. Comum com chip que tem histórico longo (>5k mensagens).
+
+**Diagnóstico rápido — endpoint `/health/whatsapp`:**
+
+Abre no navegador: `https://<AGENT_URL>/health/whatsapp`
+
+Possíveis respostas:
+
+| Status HTTP | `status` | Significado |
+|---|---|---|
+| 200 | `healthy` | Tudo certo |
+| 503 | `unhealthy` | Desconectado, reescaneia QR |
+| 503 | `degraded` | **state stale — precisa reset abaixo** |
+
+Se voltar `degraded` (`5+ failures recent`), significa que o Evolution tá em loop "Connection Closed".
+
+**Solução — reset hard da instance:**
+
+1. Pega a `EVOLUTION_API_KEY` no service Evolution → Variables.
+2. Pega a URL do Evolution (`evolution-production-XXXX.up.railway.app`).
+3. Roda no terminal (ou peça ao Claude Code via Bash):
+   ```bash
+   curl -X DELETE "https://<EVOLUTION_URL>/instance/logout/agente" \
+     -H "apikey: <KEY>"
+   curl -X DELETE "https://<EVOLUTION_URL>/instance/delete/agente" \
+     -H "apikey: <KEY>"
+   ```
+4. Railway → service Evolution → 3 pontinhos → **Restart**.
+5. Quando voltar Active, faz **Restart** no service Agente também (bootstrap recria instance fresh).
+6. **No celular**: abre WhatsApp → Aparelhos conectados → desconecta TODOS.
+7. Abre `<AGENT_URL>/qr` e escaneia de novo.
+8. Aguarda 3-5 min Baileys terminar sync inicial.
+
+**Prevenção pra repetir menos:** o agente já tenta retry com backoff (5s → 15s → 30s) em erros transitórios — então flutuações curtas resolvem sozinhas. Reset hard só é necessário quando state ficou definitivamente podre.
+
+---
+
 ### "Escaneei o QR mas WhatsApp diz 'esse aparelho está desatualizado'"
 
 **Causa:** Evolution usando uma versão de protocolo Web do WhatsApp que ficou velha. WhatsApp atualiza o protocolo de tempos em tempos.
