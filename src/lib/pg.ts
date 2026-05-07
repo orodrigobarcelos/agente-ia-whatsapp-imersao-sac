@@ -15,7 +15,17 @@ export const pool = new Pool({
   connectionString: env.DATABASE_URL,
   ssl: needsSsl ? { rejectUnauthorized: false } : undefined,
   max: 10,
-  idleTimeoutMillis: 30_000,
+  // Mantém conexões abertas indefinidamente. Motivo: o DNS privado da
+  // Railway (*.railway.internal) tem bug intermitente onde
+  // `getaddrinfo ENOTFOUND` ocorre quando pg-pool tenta reabrir uma
+  // conexão idle ~30s depois do boot. Mantendo as conexões vivas, não
+  // há re-lookup — só faz DNS uma vez e o socket persiste.
+  idleTimeoutMillis: 0,
+  // TCP keep-alive: kernel envia pacote pequeno periodicamente pra
+  // detectar socket morto cedo. Se Postgres restartar, pool detecta via
+  // pool.on('error') e re-cria — caso raro mas coberto.
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10_000,
   connectionTimeoutMillis: 10_000,
 });
 

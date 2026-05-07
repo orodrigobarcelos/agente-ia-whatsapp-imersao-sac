@@ -426,6 +426,29 @@ Edita name, description, parameters, lógica de scraping (URL, seletores).
 
 ⚠️ **PRESERVA a primeira linha do template:** `/// <reference lib="dom" />`. Ela faz o TypeScript reconhecer `document`, `window` e outros tipos do DOM dentro de callbacks de `page.evaluate(...)`. Sem essa linha, o build da Railway falha com `error TS2584: Cannot find name 'document'`. Toda tool que usar `page.evaluate()` (ou qualquer API de DOM dentro do browser) precisa dessa linha. Tools que só usam `page.locator().textContent()`, `page.click()`, etc. (API server-side) **não** precisam — mas manter a linha não causa problema.
 
+#### ⚠️ Robustez de scraping — REGRAS OBRIGATÓRIAS
+
+Scraping é frágil. Site pode mudar ordem, esconder filtros, mostrar A/B test, detectar bot. Pra evitar tool retornar valor errado em produção (que LLM vai repetir literalmente pro cliente, gerando preço/info inventada), siga **TODAS** essas regras quando criar tool de scraping:
+
+1. **Aplique filtros EXPLICITAMENTE.** Não confie em "primeiro resultado da lista". Se o cliente pediu SUV, clica no chip/checkbox "SUV" antes de extrair. Se pediu até R$ X, aplica filtro de preço. **Nunca** assuma que o site já tá filtrado.
+
+2. **Valide o item extraído antes de retornar.** Antes do `return`, confere que o card extraído realmente tem a categoria/tipo/keyword esperada no texto. Exemplo:
+   ```typescript
+   if (!textoCard.toLowerCase().includes('suv')) {
+     // pega próximo, ou retorna { ok: false, erro: 'sem SUV disponível' }
+   }
+   ```
+
+3. **Retorne contexto rico, não só o número.** Ao invés de `{ preco: 49.90 }`, retorne `{ produto, categoria, locadora, preco, periodo, link_reserva }`. Assim o LLM consegue **explicar** pro cliente, e tu consegue **debugar** pelos logs do Railway.
+
+4. **Log explícito antes do return.** Adicione `console.log('[<nome-tool>] extraiu:', resultado)` antes de retornar. Aparece no Deploy Logs da Railway, salva tua vida em prod.
+
+5. **Teste em headless: false E depois headless: true.** O passo 6.5 (demo visual) usa `headless: false`. Mas em produção é `headless: true` — site pode comportar diferente (anti-bot detecta Playwright). Roda **uma 3ª vez em headless: true** local pra confirmar paridade. Se valor mudar entre os modos, ajuste seletor.
+
+6. **Adicione fallback explícito quando filtro falhar.** Se o filtro "SUV" não existe no site, retorne `{ ok: false, erro: 'filtro não disponível' }` em vez de pegar resultado errado. **Tool falhando explicitamente é MELHOR que tool dando dado errado.**
+
+Sempre instrua o aluno: "*scraping é caça e pesca — site pode mudar, valor pode vir errado. Vamos validar antes de subir, e o agente vai te avisar quando der ruim em vez de inventar preço.*"
+
 #### 4. Strict mode — regras dos `parameters`
 
 **SEMPRE** (senão OpenAI rejeita):

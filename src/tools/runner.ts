@@ -54,8 +54,21 @@ export async function executeTool(
       ),
     ]);
     const elapsedMs = Date.now() - startedAt;
+    // Loga preview do que a tool retornou (truncado em 500 chars) pra
+    // permitir debug pós-fato. Sem isso, é impossível ver "tool executed
+    // ok com dado errado" nos logs Railway. Truncamento evita poluir log
+    // com payloads grandes ou vazar dados sensíveis em massa.
+    const dataPreview = (() => {
+      try {
+        const json = JSON.stringify(data);
+        if (!json) return null;
+        return json.length > 500 ? `${json.slice(0, 500)}…` : json;
+      } catch {
+        return '<non-serializable>';
+      }
+    })();
     logger.info(
-      { tool: name, elapsedMs, args_keys: Object.keys(args) },
+      { tool: name, elapsedMs, args_keys: Object.keys(args), dataPreview },
       'tool executed ok',
     );
     return { ok: true, data };
