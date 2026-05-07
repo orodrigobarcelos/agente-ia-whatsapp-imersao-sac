@@ -15,20 +15,21 @@ export class EvolutionError extends Error {
 
 /**
  * Substrings que aparecem no body do erro 400 do Evolution quando o
- * Baileys subjacente tá num estado transitoriamente inconsistente
- * (sync inicial pesado, conexão WebSocket reset, race entre eventos).
- * Esses casos costumam resolver em segundos sem precisar reset da
- * instance — basta dar tempo e tentar de novo.
+ * Baileys ABORTA o envio ANTES de despachar pro WhatsApp — ou seja,
+ * é seguro retentar sem risco de duplicar mensagem do lado do cliente.
+ *
+ * Lista propositadamente conservadora. NÃO inclui `socket hang up`,
+ * `econnreset`, `timeout` puro: esses indicam que o request HTTP
+ * Agente↔Evolution morreu DEPOIS que Baileys já tinha despachado a
+ * mensagem pro WhatsApp — retry causaria duplicata. Evolution v2.x
+ * não tem `clientMessageId` pra idempotência, então sem proteção
+ * server-side.
  */
 const TRANSIENT_ERROR_INDICATORS = [
   'connection closed',
   'connection lost',
   'operation aborted',
   'this operation was aborted',
-  'timed out',
-  'timeout',
-  'socket hang up',
-  'econnreset',
 ];
 
 export function isTransientEvolutionError(
@@ -139,7 +140,6 @@ export class EvolutionClient {
     const delaysMs = [0, 5_000, 15_000, 30_000];
     let lastStatus = 0;
     let lastBody = '';
-    let lastData: unknown = null;
 
     for (let attempt = 0; attempt < delaysMs.length; attempt++) {
       if (delaysMs[attempt]! > 0) {
@@ -163,7 +163,6 @@ export class EvolutionClient {
       );
       lastStatus = result.status;
       lastBody = result.raw;
-      lastData = result.data;
 
       if (result.ok) {
         return {
@@ -181,7 +180,6 @@ export class EvolutionClient {
       { status: lastStatus, body: lastBody, instance, to: number },
       'evolution sendText failed after retries',
     );
-    void lastData;
     throw new EvolutionError(
       `Evolution sendText failed: ${lastStatus}`,
       lastStatus,

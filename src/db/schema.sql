@@ -212,7 +212,15 @@ declare
   v_clean    text;
   v_targets  text[];
 begin
-  v_clean := regexp_replace(p_phone_number, '\D', '', 'g');
+  v_clean := regexp_replace(coalesce(p_phone_number, ''), '\D', '', 'g');
+
+  -- Guard contra entrada inválida (string vazia, null, "Cliente Y" sem
+  -- dígitos, etc). Sem isso, o fallback abaixo criaria session_ids
+  -- literais '@s.whatsapp.net' / '@lid' órfãos no chat_control.
+  if v_clean is null or length(v_clean) < 8 then
+    raise exception 'phone_number inválido (precisa ter ao menos 8 dígitos): %',
+      coalesce(p_phone_number, '<null>');
+  end if;
 
   -- Tenta achar session_ids conhecidos via contact_identity
   select array_agg(distinct session_id)

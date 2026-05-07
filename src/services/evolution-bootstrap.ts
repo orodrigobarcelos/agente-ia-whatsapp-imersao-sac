@@ -57,7 +57,24 @@ export interface EvolutionBootstrapResult {
   webhookUpdated: boolean;
 }
 
+// Mutex pra evitar bootstraps concorrentes (boot inicial + janitor tick
+// + chamada manual). Sem isso, dois `createInstance` simultâneos podem
+// gerar dois `setWebhook` em ordem indeterminada e deixar o webhook
+// registrado errado.
+let bootstrapInflight: Promise<EvolutionBootstrapResult | null> | null = null;
+
 export async function bootstrapEvolution(): Promise<EvolutionBootstrapResult | null> {
+  if (bootstrapInflight) {
+    logger.debug('bootstrapEvolution already running, awaiting in-flight call');
+    return bootstrapInflight;
+  }
+  bootstrapInflight = bootstrapEvolutionInner().finally(() => {
+    bootstrapInflight = null;
+  });
+  return bootstrapInflight;
+}
+
+async function bootstrapEvolutionInner(): Promise<EvolutionBootstrapResult | null> {
   if (!env.EVOLUTION_URL || !env.EVOLUTION_API_KEY) {
     logger.warn(
       'Evolution não configurado (EVOLUTION_URL/EVOLUTION_API_KEY ausentes), pulando bootstrap',
@@ -162,6 +179,121 @@ export async function bootstrapEvolution(): Promise<EvolutionBootstrapResult | n
       created: !existing,
       webhookUpdated: false,
     };
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Janitor: detecta instance ausente e dispara recriação automática.
+//
+// Cenário coberto: operador (ou Claude Code via API) faz
+// `DELETE /instance/delete/<inst>` pra resetar state Baileys podre.
+// Sem o janitor, o Agente fica "órfão" — não tem instance pra usar e
+// só recria quando o service Agente é restartado manualmente.
+//
+// O janitor checa a cada N segundos se a instance existe. Se não,
+// dispara `bootstrapEvolution()` pra recriar do zero. Bootstrap também
+// re-registra o webhook, então a recuperação é completa.
+// ────────────────────────────────────────────────────────────────────
+
+const JANITOR_INTERVAL_MS = 60_000;
+
+let janitorHandle: ReturnType<typeof setInterval> | null = null;
+let janitorTickInProgress = false;
+
+async function janitorTick(): Promise<void> {
+  if (!env.EVOLUTION_URL || !env.EVOLUTION_API_KEY) return;
+
+  const instanceName = env.EVOLUTION_INSTANCE;
+  const evolution = getEvolutionClient();
+
+  let instances: EvolutionInstance[];
+  try {
+    instances = await evolution.fetchInstances();
+  } catch (err) {
+    // Falha de comunicação não dispara recreate — Evolution pode estar
+    // restartando ou rede instável. Só loga e tenta de novo na próxima.
+    logger.debug(
+      { err: err instanceof Error ? err.message : String(err) },
+      'evolution janitor: fetchInstances failed, skipping tick',
+    );
+    return;
+  }
+
+  const exists = instances.some((i) => pickInstanceName(i) === instanceName);
+  if (exists) return;
+
+  logger.warn(
+    { instanceName },
+    'evolution janitor: instance missing, triggering re-bootstrap',
+  );
+
+  try {
+    const result = await bootstrapEvolution();
+    if (result?.created) {
+      logger.info(
+        { instanceName, webhookUrl: result.webhookUrl },
+        'evolution janitor: instance re-created successfully',
+      );
+    } else {
+      logger.warn(
+        { instanceName, result },
+        'evolution janitor: re-bootstrap returned without creating instance',
+      );
+    }
+  } catch (err) {
+    logger.error(
+      { err: err instanceof Error ? err.message : String(err) },
+      'evolution janitor: re-bootstrap threw',
+    );
+  }
+}
+
+export function startEvolutionJanitor(): void {
+  if (janitorHandle) return;
+  janitorHandle = setInterval(() => {
+    if (janitorTickInProgress) {
+      logger.debug('evolution janitor tick skipped (previous still running)');
+      return;
+    }
+    janitorTickInProgress = true;
+    janitorTick()
+      .catch((err) => {
+        logger.error(
+          { err: err instanceof Error ? err.message : String(err) },
+          'evolution janitor tick threw',
+        );
+      })
+      .finally(() => {
+        janitorTickInProgress = false;
+      });
+  }, JANITOR_INTERVAL_MS);
+  logger.info(
+    { interval_ms: JANITOR_INTERVAL_MS },
+    'evolution janitor started',
+  );
+}
+
+export async function stopEvolutionJanitor(
+  drainTimeoutMs = 3_000,
+): Promise<void> {
+  if (!janitorHandle) return;
+  clearInterval(janitorHandle);
+  janitorHandle = null;
+
+  // Se um tick estiver no meio de chamar Evolution (pode levar segundos),
+  // aguarda terminar antes de devolver controle pra shutdown — senão o
+  // closePool() pode disparar enquanto o tick ainda escreve em log/etc.
+  const deadline = Date.now() + drainTimeoutMs;
+  while (janitorTickInProgress && Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  if (janitorTickInProgress) {
+    logger.warn(
+      { drainTimeoutMs },
+      'evolution janitor stopped but tick still in progress (timed out)',
+    );
+  } else {
+    logger.info('evolution janitor stopped');
   }
 }
 

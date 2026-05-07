@@ -12,7 +12,11 @@ import {
   startBufferSweeper,
   stopBufferSweeper,
 } from './services/buffer.js';
-import { bootstrapEvolution } from './services/evolution-bootstrap.js';
+import {
+  bootstrapEvolution,
+  startEvolutionJanitor,
+  stopEvolutionJanitor,
+} from './services/evolution-bootstrap.js';
 
 async function main() {
   const app = Fastify({
@@ -41,17 +45,27 @@ async function main() {
 
   // Bootstrap Evolution depois que o servidor já está aceitando conexões —
   // o webhook precisa que a porta esteja aberta antes de a Evolution registrá-lo.
-  void bootstrapEvolution().catch((err) => {
-    logger.error(
-      { err: err instanceof Error ? err.message : String(err) },
-      'evolution bootstrap threw',
-    );
-  });
+  void bootstrapEvolution()
+    .catch((err) => {
+      logger.error(
+        { err: err instanceof Error ? err.message : String(err) },
+        'evolution bootstrap threw',
+      );
+    })
+    .finally(() => {
+      // Janitor periódico que recria a instance se ela for deletada
+      // externamente (ex: operador rodou DELETE /instance/delete pra
+      // resetar state Baileys podre). Sem ele, Agente fica "órfão" até
+      // restart manual. Só inicia depois do bootstrap inicial pra evitar
+      // race com a primeira tentativa de criação.
+      startEvolutionJanitor();
+    });
 
   const shutdown = async (signal: string) => {
     logger.info({ signal }, 'shutdown signal received');
     try {
       await app.close();
+      await stopEvolutionJanitor();
       stopBufferSweeper();
       await awaitInflightFlushes(25_000);
       await closePool();
