@@ -154,7 +154,33 @@ create unique index if not exists message_buffer_evolution_unique_idx
   where evolution_message_id is not null;
 
 -- ============================================================================
---  6) is_ai_paused() — checa se a IA está pausada pra uma sessão
+--  6) contact_identity — mapeia phone_number ↔ session_id
+-- ============================================================================
+-- WhatsApp Business Multi-Device entrega mensagens com identidade @lid
+-- (hash anônimo NÃO derivável do número telefônico). Pra que o operador
+-- humano consiga "pausar IA pro número 5521999..." sem precisar adivinhar
+-- hashes, gravamos o pair (phone_number, session_id) toda vez que recebemos
+-- mensagem que exponha ambos no payload do Baileys (remoteJid + remoteJidAlt).
+--
+-- Múltiplos session_ids podem corresponder ao mesmo phone_number ao longo
+-- do tempo (ex: cliente trocou de aparelho/Business), por isso PK composta.
+create table if not exists public.contact_identity (
+  phone_number   text not null,
+  session_id     text not null,
+  push_name      text,
+  first_seen_at  timestamptz not null default now(),
+  last_seen_at   timestamptz not null default now(),
+  primary key (phone_number, session_id)
+);
+
+create index if not exists contact_identity_session_idx
+  on public.contact_identity (session_id);
+
+create index if not exists contact_identity_phone_idx
+  on public.contact_identity (phone_number);
+
+-- ============================================================================
+--  7) is_ai_paused() — checa se a IA está pausada pra uma sessão
 -- ============================================================================
 create or replace function public.is_ai_paused(p_session_id text)
 returns boolean
@@ -165,4 +191,87 @@ as $$
     (select ai_paused from public.chat_control where session_id = p_session_id),
     false
   );
+$$;
+
+-- ============================================================================
+--  8) pause_ai_by_phone() — pausa todas as sessões conhecidas de um número
+-- ============================================================================
+-- Helper pra resolver o problema "cliente mandou mas pausamos só
+-- @s.whatsapp.net e mensagem chegou em @lid". Usa contact_identity pra
+-- descobrir TODOS os session_ids associados ao número e pausa todos de uma
+-- vez. Se nenhum mapping existir ainda, faz fallback pros 2 formatos
+-- clássicos. Retorna o array de session_ids efetivamente pausados.
+create or replace function public.pause_ai_by_phone(
+  p_phone_number text,
+  p_paused_by    text default 'manual'
+)
+returns text[]
+language plpgsql
+as $$
+declare
+  v_clean    text;
+  v_targets  text[];
+begin
+  v_clean := regexp_replace(p_phone_number, '\D', '', 'g');
+
+  -- Tenta achar session_ids conhecidos via contact_identity
+  select array_agg(distinct session_id)
+    into v_targets
+    from public.contact_identity
+   where phone_number = v_clean;
+
+  -- Fallback: se não há mapping ainda, gera os 2 formatos clássicos
+  if v_targets is null or cardinality(v_targets) = 0 then
+    v_targets := array[
+      v_clean || '@s.whatsapp.net',
+      v_clean || '@lid'
+    ];
+  end if;
+
+  -- UPSERT em chat_control pra todos os targets
+  insert into public.chat_control (session_id, instance, agent_type, ai_paused, paused_at, paused_by)
+  select target, 'agente', 'default', true, now(), p_paused_by
+    from unnest(v_targets) as target
+  on conflict (session_id) do update
+    set ai_paused = true,
+        paused_at = now(),
+        paused_by = excluded.paused_by;
+
+  return v_targets;
+end;
+$$;
+
+-- ============================================================================
+--  9) resume_ai_by_phone() — reativa todas as sessões conhecidas de um número
+-- ============================================================================
+create or replace function public.resume_ai_by_phone(p_phone_number text)
+returns text[]
+language plpgsql
+as $$
+declare
+  v_clean    text;
+  v_targets  text[];
+begin
+  v_clean := regexp_replace(p_phone_number, '\D', '', 'g');
+
+  select array_agg(distinct session_id)
+    into v_targets
+    from public.contact_identity
+   where phone_number = v_clean;
+
+  if v_targets is null or cardinality(v_targets) = 0 then
+    v_targets := array[
+      v_clean || '@s.whatsapp.net',
+      v_clean || '@lid'
+    ];
+  end if;
+
+  update public.chat_control
+     set ai_paused = false,
+         paused_at = null,
+         paused_by = null
+   where session_id = any(v_targets);
+
+  return v_targets;
+end;
 $$;

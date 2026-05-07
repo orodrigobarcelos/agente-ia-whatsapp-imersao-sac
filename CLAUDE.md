@@ -616,14 +616,73 @@ Renderize cronologicamente, destaque mensagens com `status = 'failed'`.
 
 ### Pausar/retomar IA pra um cliente
 
-```sql
--- Pausar (atendente humano assume)
-UPDATE chat_control SET ai_paused = true, paused_at = now(), paused_by = 'manual'
-WHERE session_id = '5511999XXXXXX@s.whatsapp.net';
+⚠️ **Atenção crítica — formato `@lid`:** WhatsApp Business Multi-Device entrega mensagens com `session_id` no formato `<hash>@lid` (ex: `89606540238952@lid`) que **NÃO é derivável do número telefônico**. Tentar pausar só em `<numero>@s.whatsapp.net` falha silenciosamente — IA continua respondendo nas mensagens que chegam pelo `@lid`.
 
--- Retomar
-UPDATE chat_control SET ai_paused = false, paused_at = NULL, paused_by = NULL
-WHERE session_id = '5511999XXXXXX@s.whatsapp.net';
+A solução é a função `pause_ai_by_phone()`: ela consulta a tabela `contact_identity` (que o agente popula automaticamente quando recebe mensagens) pra descobrir TODOS os `session_id` associados ao número, e pausa todos de uma vez. Se ainda não houver mapping (cliente nunca mandou mensagem antes), faz fallback pros 2 formatos clássicos.
+
+#### Pausar IA por número de telefone (jeito certo)
+
+```sql
+-- Pausa permanente. Retorna o array de session_ids efetivamente pausados.
+SELECT pause_ai_by_phone('5511999999999');
+
+-- Confere: quem ficou pausado pra esse número?
+SELECT cc.session_id, ci.push_name, cc.paused_at, cc.paused_by
+FROM chat_control cc
+LEFT JOIN contact_identity ci ON ci.session_id = cc.session_id
+WHERE cc.session_id = ANY(
+  SELECT DISTINCT session_id FROM contact_identity
+  WHERE phone_number = regexp_replace('5511999999999', '\D', '', 'g')
+)
+OR cc.session_id LIKE '%5511999999999%';
+```
+
+#### Retomar IA por número de telefone
+
+```sql
+SELECT resume_ai_by_phone('5511999999999');
+```
+
+#### Listar todos os contatos pausados (legível)
+
+```sql
+SELECT
+  ci.phone_number,
+  ci.push_name,
+  cc.session_id,
+  cc.paused_at,
+  cc.paused_by
+FROM chat_control cc
+LEFT JOIN contact_identity ci ON ci.session_id = cc.session_id
+WHERE cc.ai_paused = true
+ORDER BY cc.paused_at DESC;
+```
+
+#### Buscar session_id manualmente quando aluno só lembra de parte do nome ou número
+
+```sql
+-- Por nome de exibição (push_name)
+SELECT session_id, phone_number, push_name, last_seen_at
+FROM contact_identity
+WHERE push_name ILIKE '%nome%'
+ORDER BY last_seen_at DESC;
+
+-- Por últimos dígitos do número
+SELECT session_id, phone_number, push_name, last_seen_at
+FROM contact_identity
+WHERE phone_number LIKE '%9999%'
+ORDER BY last_seen_at DESC;
+```
+
+#### Modo legacy — pausar por session_id direto
+
+Útil quando aluno colou o session_id explícito (ex: `89606540238952@lid`) e quer só aquele:
+
+```sql
+INSERT INTO chat_control (session_id, instance, agent_type, ai_paused, paused_at, paused_by)
+VALUES ('<SESSION_ID>', 'agente', 'default', true, now(), 'manual')
+ON CONFLICT (session_id) DO UPDATE
+SET ai_paused = true, paused_at = now(), paused_by = 'manual';
 ```
 
 ---
@@ -636,6 +695,7 @@ WHERE session_id = '5511999XXXXXX@s.whatsapp.net';
 | `agent_skills` | N skills por agente. Frontmatter (`name`, `description`) + conteúdo. **Cache 30s.** |
 | `chat_messages` | histórico completo (user, assistant, system). Use pra debugar. |
 | `chat_control` | pause/resume IA por sessão. |
+| `contact_identity` | mapeia `phone_number ↔ session_id` (resolve problema do `@lid`). Populada automaticamente pelo webhook. |
 | `message_buffer` | buffer interno de debounce (15s). Não toque a menos que seja debug. |
 
 ---

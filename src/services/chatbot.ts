@@ -9,6 +9,7 @@ import {
 } from '../lib/phone.js';
 import { loadAgentConfig, resolveOpenAIKey, type AgentConfig } from './agent-config.js';
 import { runAgent } from './agent.js';
+import { upsertIdentityFromKey } from './contact-identity.js';
 import {
   addToBuffer,
   markBufferProcessed,
@@ -105,6 +106,16 @@ export async function handleEvolutionWebhook(
   const phone = jidToLeadIdentifier(canonicalJid);
   const evolutionMessageId = data.key?.id ?? null;
   const pushName = data.pushName ?? null;
+
+  // Grava mapping phone↔session_id no contact_identity. Sem isso,
+  // "pausar IA pro número 5521..." não cobre conversas que chegam em
+  // formato @lid (hash anônimo do WhatsApp Business). Fire-and-forget.
+  void upsertIdentityFromKey({
+    remoteJid: data.key?.remoteJid,
+    remoteJidAlt: data.key?.remoteJidAlt,
+    canonicalSessionId: sessionId,
+    pushName,
+  });
 
   const { messageType, message } = unwrapEphemeral(
     data.messageType ?? '',
