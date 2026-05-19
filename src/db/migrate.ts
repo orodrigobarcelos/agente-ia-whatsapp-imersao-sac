@@ -105,10 +105,16 @@ function isTransientDbError(err: unknown): boolean {
 }
 
 async function main(): Promise<void> {
-  // Backoff em erro transitório: ~43s no pior caso. Sem isso, um Postgres
-  // momentaneamente sem conexões livres derruba o migrate, o container
-  // reinicia, e cai num crash-loop que estoura o healthcheck do deploy.
-  const delaysMs = [0, 3_000, 5_000, 8_000, 12_000, 15_000];
+  // Backoff em erro transitório: ~2.5 min no pior caso. Cobre cenários
+  // de pressão real (Postgres ainda subindo, várias conexões acumuladas
+  // de deploys anteriores que ainda não foram reaped pelo TCP). Sem
+  // retry, o migrate cai, o container reinicia e crash-loopa, estourando
+  // o healthcheck do deploy. healthcheckTimeout no railway.json precisa
+  // ser >= esse total + tempo de boot do server.
+  const delaysMs = [
+    0, 3_000, 5_000, 8_000, 12_000, 15_000,
+    20_000, 25_000, 30_000, 35_000,
+  ];
   let lastError: unknown = null;
 
   for (let attempt = 0; attempt < delaysMs.length; attempt++) {
