@@ -99,10 +99,48 @@ async function loadHistory(
   }
 }
 
+/**
+ * Bloco de contexto temporal injetado no topo do system prompt a cada
+ * requisição. Sem isso, o LLM CHUTA o ano quando o cliente diz uma data
+ * sem ano ("27 de maio") — e costuma chutar um ano do passado, o que
+ * quebra qualquer tool que receba datas (ex: cotação com data passada
+ * que o site recusa). Com a data de hoje explícita, o modelo preenche o
+ * ano certo sem depender de chamar a tool current_time.
+ */
+function currentDateContext(): string {
+  const now = new Date();
+  const TZ = 'America/Sao_Paulo';
+  const extenso = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: TZ,
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  }).format(now);
+  // en-CA formata como AAAA-MM-DD
+  const iso = new Intl.DateTimeFormat('en-CA', {
+    timeZone: TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now);
+  return [
+    'CONTEXTO TEMPORAL (use SEMPRE que lidar com datas):',
+    `- Hoje é ${extenso}.`,
+    `- Data de hoje no formato AAAA-MM-DD: ${iso}.`,
+    '- Se o cliente disser uma data sem o ano (ex: "27 de maio"), use o',
+    '  ANO ATUAL. Se essa data já passou neste ano, use o próximo ano.',
+    '- NUNCA use um ano do passado em datas que você preencher.',
+  ].join('\n');
+}
+
 async function buildSystemMessage(config: AgentConfig): Promise<string> {
+  const dateCtx = currentDateContext();
   const skillsBlock = await buildSkillsBlockFor(config.agent_type);
-  if (!skillsBlock) return config.system_prompt;
-  return `${config.system_prompt}\n\n${skillsBlock}`;
+  const base = skillsBlock
+    ? `${config.system_prompt}\n\n${skillsBlock}`
+    : config.system_prompt;
+  return `${dateCtx}\n\n${base}`;
 }
 
 /**
