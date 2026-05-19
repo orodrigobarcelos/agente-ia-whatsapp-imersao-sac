@@ -26,27 +26,50 @@ CONTEXTO
 
 REGRAS GLOBAIS
 - A ÚNICA configuração que você TEM permissão de mexer é "TCP Proxy" do
-  Postgres (passo 5 abaixo).
+  Postgres (passo 6 abaixo).
 - Você NUNCA toca em Settings do Evolution.
 - Você NUNCA clica em Edit, Disconnect, Restart, Redeploy, Eject.
 - Você NUNCA clica em "Generate Domain" no Postgres — Postgres não usa HTTP.
+- Você NUNCA abre um projeto que JÁ EXISTE. NUNCA clica no seletor de
+  projetos (o dropdown com nome tipo "delightful-light" no topo esquerdo).
+  NUNCA usa "New Project" de menu nenhum. O ÚNICO ponto de partida é a URL
+  do template do passo 1 — sempre.
+- Se em algum momento você se ver dentro de um projeto que tem services
+  como Chatwoot, Redis, n8n, ou qualquer coisa além de Postgres+Evolution,
+  você ENTROU NO LUGAR ERRADO. Pare, volte pra URL do template do passo 1
+  e recomece do passo 1.
 
 PASSO A PASSO
 
-1) Abre uma aba em https://railway.com/deploy/lwxg0j?referralCode=TOg9K1
+1) Abre uma aba EXATAMENTE nessa URL (cola ela inteira na barra de
+   endereço):
+   https://railway.com/deploy/lwxg0j?referralCode=TOg9K1
 
-2) Se eu não estiver logado: peça pra eu logar. Aguarde retornar logado.
+   Essa é uma PÁGINA DE TEMPLATE — vai mostrar o título "Agente IA
+   WhatsApp - Imersão SAC [oficial]" e, do lado DIREITO, um botão roxo
+   escrito "Deploy Now". NÃO é a tela de um projeto. Se você não está
+   vendo esse título e esse botão "Deploy Now", você está na página
+   errada — recarrega essa URL.
 
-3) Tela "Configure" do template:
-   - Mostra os 2 services (Postgres e Evolution).
+2) Se eu não estiver logado: peça pra eu logar. Depois que eu logar,
+   ABRA DE NOVO essa MESMA URL do passo 1. NÃO vá pro dashboard, NÃO
+   abra nenhum projeto existente — volte pra página do template.
+
+3) Na página do template, clica no botão roxo "Deploy Now" (lado
+   DIREITO da tela, logo abaixo do nome do template). Esse clique é
+   OBRIGATÓRIO — sem ele NADA é deployado. Só acessar a URL não
+   deploya nada.
+
+4) Depois do "Deploy Now", abre a tela "Configure" / "New Project"
+   mostrando os 2 services (Postgres e Evolution):
    - Os defaults estão bons — NÃO mexe em campo nenhum.
-   - Clica "Deploy" (botão grande embaixo).
+   - Clica no botão "Deploy" dessa tela (botão grande embaixo).
 
-4) Aguarda os 2 services subirem (~2-3 min). Postgres e Evolution viram
+5) Aguarda os 2 services subirem (~2-3 min). Postgres e Evolution viram
    "Active" / "Online". Railway redireciona pra um projeto novo (nome
    aleatório tipo "respectful-bravery").
 
-5) Habilita TCP Proxy no Postgres (OBRIGATÓRIO antes de pegar URL):
+6) Habilita TCP Proxy no Postgres (OBRIGATÓRIO antes de pegar URL):
 
    Quando o template provisiona Postgres, NÃO vem com TCP Proxy automático.
    Sem ele, a DATABASE_PUBLIC_URL fica com host/porta vazios:
@@ -73,7 +96,7 @@ PASSO A PASSO
       quando termina.
    j) O Postgres vai voltar pra status "Active" / "Online".
 
-6) Pega a URL pública do Postgres:
+7) Pega a URL pública do Postgres:
 
    a) Ainda no painel do Postgres, clica na aba "Variables" (no topo).
    b) Lista de variáveis aparece, cada linha com valor mascarado ("*******").
@@ -91,10 +114,10 @@ PASSO A PASSO
       postgresql://postgres:SENHA@trolley.proxy.rlwy.net:PORTA/railway
 
    ATENÇÃO: se o valor for "postgresql://postgres:SENHA@:/railway" (com
-   "@:/" — host e porta vazios), o TCP Proxy do passo 5 ainda não terminou
+   "@:/" — host e porta vazios), o TCP Proxy do passo 6 ainda não terminou
    de provisionar. Aguarda mais 30 segundos e copia de novo.
 
-7) ⏸ FIM. Diga:
+8) ⏸ FIM. Diga:
 
    "pronto, copia a URL acima e cola no Claude Code. Ele vai te dar o
    próximo prompt pra eu adicionar o service do Agente puxando do GitHub."
