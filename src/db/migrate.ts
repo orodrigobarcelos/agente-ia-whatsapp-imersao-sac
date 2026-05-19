@@ -77,20 +77,71 @@ async function bootstrapAgentConfig(): Promise<void> {
   );
 }
 
+/**
+ * Erros de conexão TRANSITÓRIOS que devem disparar retry em vez de falhar
+ * o boot. Cenários no boot de um container:
+ *  - "too many clients already" → Postgres no limite de conexões porque
+ *    deploys antigos ainda seguram conexões (idleTimeoutMillis: 0). As
+ *    conexões mortas são recolhidas em segundos — basta esperar.
+ *  - Postgres ainda subindo / DNS privado da Railway com blip momentâneo.
+ *
+ * Erro NÃO-transitório (ex: erro de sintaxe no schema.sql) falha na hora —
+ * retry não resolveria.
+ */
+const TRANSIENT_DB_ERROR_INDICATORS = [
+  'too many clients',
+  'econnrefused',
+  'etimedout',
+  'enotfound',
+  'connection terminated',
+  'connection refused',
+  'the database system is starting up',
+  'timeout exceeded when trying to connect',
+];
+
+function isTransientDbError(err: unknown): boolean {
+  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  return TRANSIENT_DB_ERROR_INDICATORS.some((ind) => msg.includes(ind));
+}
+
 async function main(): Promise<void> {
-  try {
-    await applySchema();
-    await bootstrapAgentConfig();
-    logger.info('migrate completed');
-  } catch (err) {
-    logger.error(
-      { err: err instanceof Error ? err.message : String(err) },
-      'migrate failed',
-    );
-    process.exitCode = 1;
-  } finally {
-    await pool.end().catch(() => {});
+  // Backoff em erro transitório: ~43s no pior caso. Sem isso, um Postgres
+  // momentaneamente sem conexões livres derruba o migrate, o container
+  // reinicia, e cai num crash-loop que estoura o healthcheck do deploy.
+  const delaysMs = [0, 3_000, 5_000, 8_000, 12_000, 15_000];
+  let lastError: unknown = null;
+
+  for (let attempt = 0; attempt < delaysMs.length; attempt++) {
+    if (delaysMs[attempt]! > 0) {
+      logger.warn(
+        {
+          attempt: attempt + 1,
+          delay_ms: delaysMs[attempt],
+          err: lastError instanceof Error ? lastError.message : String(lastError),
+        },
+        'migrate retrying after transient DB error',
+      );
+      await new Promise((r) => setTimeout(r, delaysMs[attempt]));
+    }
+    try {
+      await applySchema();
+      await bootstrapAgentConfig();
+      logger.info('migrate completed');
+      await pool.end().catch(() => {});
+      return;
+    } catch (err) {
+      lastError = err;
+      // Erro permanente → não adianta retentar, falha já.
+      if (!isTransientDbError(err)) break;
+    }
   }
+
+  logger.error(
+    { err: lastError instanceof Error ? lastError.message : String(lastError) },
+    'migrate failed',
+  );
+  await pool.end().catch(() => {});
+  process.exitCode = 1;
 }
 
 void main();

@@ -14,7 +14,12 @@ const needsSsl = (() => {
 export const pool = new Pool({
   connectionString: env.DATABASE_URL,
   ssl: needsSsl ? { rejectUnauthorized: false } : undefined,
-  max: 10,
+  // Pool pequeno de propósito: um agente de WhatsApp é baixa concorrência,
+  // e como `idleTimeoutMillis: 0` mantém as conexões abertas pra sempre,
+  // cada deploy segura até `max` conexões até o container antigo morrer.
+  // Com `max` baixo, vários deploys empilhados não estouram o limite de
+  // conexões do Postgres ("sorry, too many clients already").
+  max: 4,
   // Mantém conexões abertas indefinidamente. Motivo: o DNS privado da
   // Railway (*.railway.internal) tem bug intermitente onde
   // `getaddrinfo ENOTFOUND` ocorre quando pg-pool tenta reabrir uma
