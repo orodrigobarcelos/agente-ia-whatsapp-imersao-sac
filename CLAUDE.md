@@ -261,24 +261,22 @@ Quando o aluno disser "pronto" / "voltei" / similar:
 2. Se falhar: oriente "feche e abra de novo, às vezes demora 1 vez extra" ou "confira se a URL tem `sslmode=require` no final".
 3. Se OK: passa pro Passo 8.
 
-### Passo 8 — Entrevista (10 perguntas)
+### Passo 8 — Entrevista (5 perguntas)
 
 Faça **uma de cada vez** (uma por mensagem, espera resposta). Não derrame todas de uma vez.
 
-1. Como se chama seu agente? (ex: "Lia", "Rod IA")
-2. Sobre o que é seu negócio? (1 frase)
-3. Quem é o cliente típico? (idade, perfil, dor)
-4. Qual o objetivo principal do agente? (qualificar lead / responder dúvida / agendar / vender)
-5. Tom de voz: formal, neutro ou informal?
-6. Tem alguma regra **inegociável**? (ex: "nunca falar preço", "nunca prometer prazo")
-7. O que o agente **NUNCA** deve fazer?
-8. Tem perguntas frequentes que ele já deve saber responder?
-9. Quando ele não souber, o que faz? (chama humano, pede pra esperar, etc)
-10. Qual a primeira mensagem dele numa nova conversa?
+Cada pergunta cobre um bloco do system prompt — identidade, contexto, missão, limites e conhecimento. Se o aluno responder curto demais, puxe 1 detalhe a mais antes de seguir.
 
-Vá tomando notas. Depois das 10:
+1. **Identidade** — Como seu agente vai se chamar, e que tom ele tem: formal, neutro ou informal? (ex: "Lia", bem informal)
+2. **Negócio e cliente** — Sobre o que é seu negócio, e quem é o cliente típico que vai falar com ele? (perfil e principal dor)
+3. **Missão** — Qual o objetivo principal do agente (tirar dúvida / qualificar lead / agendar / vender), e o que ele faz quando não souber responder algo? (chama humano, pede pra esperar, etc.)
+4. **Limites** — Tem alguma regra inegociável ou algo que ele **NUNCA** pode fazer? (ex: nunca falar preço, nunca prometer prazo)
+5. **Conhecimento** — Quais perguntas frequentes ou informações ele já deve saber responder de cara? (produtos, horários, preços, como funciona)
 
-- Mostre um **rascunho** do system prompt em formato Markdown.
+Vá tomando notas. Depois das 5:
+
+- Monte também a **primeira mensagem** que o agente manda numa conversa nova — você redige a partir do nome, tom e objetivo (não precisa perguntar).
+- Mostre um **rascunho** do system prompt em formato Markdown, já incluindo essa saudação.
 - Pergunte: "tá bom assim ou quer mudar alguma coisa?"
 - Itere até o aluno aprovar.
 

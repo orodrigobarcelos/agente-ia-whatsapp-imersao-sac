@@ -56,7 +56,7 @@ Ele vai ler o [`CLAUDE.md`](./CLAUDE.md) e te conduzir do começo ao fim:
 4. **Magic Prompt #2** — Chrome adiciona o service Agente puxando do TEU repo GitHub privado (build leva 5-7 min — instala Chromium pro Playwright).
 5. **Magic Prompt #3** — Chrome aguarda o build terminar e extrai a URL pública do Agente.
 6. **Restart Claude Code** pra carregar MCP Postgres.
-7. **Entrevista** — 10 perguntas pra montar a personalidade do agente.
+7. **Entrevista** — 5 perguntas pra montar a personalidade do agente.
 8. **QR Code** — escaneia com seu chip.
 
 **Pronto.** Manda mensagem no WhatsApp e o agente responde.
