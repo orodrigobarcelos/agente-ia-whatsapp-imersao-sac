@@ -6,3 +6,6 @@ node_modules/
 dist/
 .DS_Store
 *.log
+
+# uso interno (não vai pro repo do aluno)
+CHECKLIST-ANTES.md

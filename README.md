@@ -21,7 +21,7 @@ Template plug-and-play. **Você sai dessa página com um agente de IA respondend
 
 ## Antes de começar — checklist
 
-Leia [CHECKLIST-ANTES.md](./CHECKLIST-ANTES.md). Você precisa:
+Você precisa:
 
 1. **Anthropic Pro** + **Claude Code app desktop** instalado.
 2. **Claude for Chrome** instalado e logado.
