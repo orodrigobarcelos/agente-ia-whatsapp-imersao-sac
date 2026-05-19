@@ -19,6 +19,12 @@ REGRAS
 - VOCÊ NUNCA toca em Settings, Networking, Generate Domain, ou qualquer
   config. A URL JÁ EXISTE — só precisa LER e copiar.
 - VOCÊ NÃO toca em outros services.
+- VOCÊ NUNCA abre aba nova. VOCÊ NUNCA navega pra URL do Agente. Trabalha
+  SÓ dentro da aba da Railway que já está aberta. A URL é só TEXTO pra
+  você LER e copiar — NÃO é pra clicar e abrir.
+- Se você clicar na URL ela ABRE numa aba nova (errado). Pra copiar sem
+  abrir: passa o mouse em cima, acha o ícone de copiar (📋), e clica
+  NO ÍCONE — não no texto do link. Ou seleciona o texto e copia.
 
 PASSO A PASSO
 
@@ -41,9 +47,12 @@ PASSO A PASSO
       pública gerada. Formato esperado:
       https://agente-production-XXXX.up.railway.app
 
-   b) Clica pra copiar (ou copia manualmente).
+   b) LÊ essa URL e copia o TEXTO dela. NÃO clica no link (clicar abre
+      uma aba nova — errado). Se tiver um ícone de copiar do lado, usa
+      o ícone. Senão, só lê o texto e reproduz ele no chat.
 
-6) Cola a URL AQUI NO CHAT pra eu ver.
+6) Cola a URL (o texto) AQUI NO CHAT pra eu ver. NÃO abra a URL no
+   navegador — só me manda o texto dela.
 
 7) ⏸ FIM. Diga:
 
