@@ -627,6 +627,33 @@ async function flushSession(sessionId: string): Promise<void> {
   const instance = rows[0]!.instance;
   const evolution = getEvolutionClient();
 
+  // Reivindica o buffer ATOMICAMENTE antes de rodar o agente. Sem isso, se o
+  // agente demora (tool de scraping de 47s, OpenAI lenta) e o cliente manda
+  // outra mensagem nesse meio tempo, o sweeper dispara outro flush que
+  // reivindica o buffer primeiro — e quando o flush original termina de
+  // gerar a resposta, ela é DESCARTADA com "buffer already claimed",
+  // deixando o cliente sem resposta. Claimando antes do agente, a janela
+  // de corrida cai de dezenas de segundos pra ~ms (só DB roundtrip).
+  let claimedCount = 0;
+  try {
+    claimedCount = await markBufferProcessed(bufferIds);
+  } catch (err) {
+    logger.error(
+      { err: err instanceof Error ? err.message : String(err), session_id: sessionId },
+      'markBufferProcessed failed before agent run, aborting flush',
+    );
+    return;
+  }
+  if (claimedCount === 0) {
+    // Outro flush concorrente já pegou essas mensagens — esse flush não
+    // tem o que fazer. Não roda o agente, não gasta tokens.
+    logger.info(
+      { session_id: sessionId, buffer_ids: bufferIds },
+      'flush skipped (buffer already claimed by concurrent flush)',
+    );
+    return;
+  }
+
   let config: AgentConfig | null = null;
   try {
     config = await loadAgentConfig(agentType);
@@ -683,30 +710,8 @@ async function flushSession(sessionId: string): Promise<void> {
       tokensOut: i === 0 ? tokensOut : 0,
     });
 
-    if (i === 0) {
-      try {
-        const claimed = await markBufferProcessed(bufferIds);
-        if (claimed === 0) {
-          logger.info(
-            { session_id: sessionId, buffer_ids: bufferIds },
-            'flush aborted (buffer already claimed by another flush)',
-          );
-          if (pendingId) {
-            await markAssistantFailed(pendingId, 'aborted: buffer already claimed');
-          }
-          return;
-        }
-      } catch (err) {
-        logger.error(
-          { err: err instanceof Error ? err.message : String(err), session_id: sessionId },
-          'markBufferProcessed failed, aborting flush',
-        );
-        if (pendingId) {
-          await markAssistantFailed(pendingId, 'aborted: mark buffer processed failed');
-        }
-        return;
-      }
-    }
+    // markBufferProcessed agora roda ANTES do agente (no topo de
+    // flushSession). Não precisa mais reivindicar aqui.
 
     try {
       await evolution.sendPresence(instance, sessionId, 'composing', typingMs);
