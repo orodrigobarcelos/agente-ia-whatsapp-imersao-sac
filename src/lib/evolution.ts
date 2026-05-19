@@ -364,10 +364,18 @@ export class EvolutionClient {
     }
   }
 
-  async connectInstance(instanceName: string): Promise<InstanceConnectResult> {
+  async connectInstance(
+    instanceName: string,
+    number?: string,
+  ): Promise<InstanceConnectResult> {
+    // Quando `number` é passado, Evolution gera um CÓDIGO DE PAREAMENTO
+    // (pairingCode) em vez de só o QR — o aluno digita esse código em
+    // "Conectar com número de telefone" no WhatsApp. Caminho alternativo
+    // útil quando o WhatsApp recusa o scan do QR.
+    const qs = number ? `?number=${encodeURIComponent(number)}` : '';
     const result = await this.request<InstanceConnectResult>(
       'GET',
-      `/instance/connect/${encodeURIComponent(instanceName)}`,
+      `/instance/connect/${encodeURIComponent(instanceName)}${qs}`,
     );
     if (!result.ok) {
       throw new EvolutionError(
@@ -377,6 +385,24 @@ export class EvolutionClient {
       );
     }
     return result.data ?? {};
+  }
+
+  // Desconecta/limpa a sessão Baileys da instância. Necessário antes de
+  // pedir um código de pareamento: se a instância já está "presa" no modo
+  // QR, o connect com ?number= devolve QR de novo (pairingCode null). O
+  // logout reseta a sessão pra o próximo connect gerar o código.
+  // NÃO lança em falha — logout numa instância já desconectada pode 404.
+  async logoutInstance(instanceName: string): Promise<void> {
+    const result = await this.request(
+      'DELETE',
+      `/instance/logout/${encodeURIComponent(instanceName)}`,
+    );
+    if (!result.ok) {
+      logger.warn(
+        { status: result.status, body: result.raw, instance: instanceName },
+        'evolution logoutInstance failed (ignorável se já desconectada)',
+      );
+    }
   }
 
   async connectionState(
