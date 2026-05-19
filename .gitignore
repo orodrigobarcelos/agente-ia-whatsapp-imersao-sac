@@ -9,3 +9,4 @@ dist/
 
 # uso interno (não vai pro repo do aluno)
 CHECKLIST-ANTES.md
+railway.template.json
