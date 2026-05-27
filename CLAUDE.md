@@ -92,26 +92,116 @@ where winget 2>/dev/null && echo "WINGET_OK" || echo "WINGET_MISSING"
 
 > "Roda esses comandos: [comandos da doc oficial em https://github.com/cli/cli/blob/trunk/docs/install_linux.md]. Me avisa."
 
-#### 1.4 — Autoriza GitHub
+#### 1.4 — Autoriza GitHub (Device Flow via API)
 
-Verifica de novo: `gh auth status`. Se já tem `Logged in to github.com`, pula pro 1.5.
+⚠️ **NÃO use `gh auth login --web`** — esse comando tenta abrir o navegador local e fica interativo esperando "Press Enter". Em ambiente remoto (Claude for Chrome, web, container) o browser **não abre** e o comando trava. Use o fluxo abaixo: pega o código pela API do GitHub diretamente, entrega no chat, e o aluno cola no navegador dele manualmente.
 
-Se não autenticado:
+**Passo 1 — Pergunta qual conta o aluno quer usar:**
 
-> "Beleza, agora vou conectar tua conta GitHub. Vou rodar um comando que abre uma janela do navegador. O terminal aqui vai te mostrar um código de 8 dígitos (formato `XXXX-XXXX`) — copia esse código e cola na janela do navegador quando ele pedir."
+> "Você tem mais de uma conta no GitHub? Se sim, me fala qual quer usar (o `username` dela). Se só tem uma, fala 'única' que eu sigo."
 
-Roda **interativo** (aluno vê o código no terminal):
+Guarde como `<gh_username_alvo>` (se "única", deixa em branco).
+
+**Passo 2 — Checa se essa conta já tá autenticada no `gh`:**
+
 ```bash
-gh auth login --hostname github.com --git-protocol https --web
+gh auth status 2>&1
 ```
 
-Após o aluno autorizar no navegador e o comando voltar, valida:
+- Se aparece `Logged in to github.com account <gh_username_alvo>` **e** `Active account: true` → pula pro 1.5.
+- Se aparece `Logged in to github.com account <gh_username_alvo>` mas `Active account: false` → só faz switch:
+  ```bash
+  gh auth switch --hostname github.com --user <gh_username_alvo>
+  gh auth status
+  gh api user --jq .login
+  ```
+  Confirma e pula pro 1.5.
+- Se a conta alvo **não está logada** → segue Passo 3.
+
+**Passo 3 — Solicita device code via API do GitHub:**
+
+Roda (esse é o `client_id` público do GitHub CLI — não é segredo):
+
 ```bash
-gh auth status
+RESP=$(curl -s -X POST https://github.com/login/device/code \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d '{"client_id":"178c6fc778ccc68e1d6a","scope":"repo read:org gist workflow"}')
+
+echo "$RESP" | python3 -c "
+import sys, json
+d = json.loads(sys.stdin.read())
+print('USER_CODE=' + d['user_code'])
+print('VERIFICATION_URI=' + d['verification_uri'])
+print('DEVICE_CODE=' + d['device_code'])
+print('INTERVAL=' + str(d['interval']))
+print('EXPIRES_IN=' + str(d['expires_in']))
+"
+
+# Salva device_code num arquivo temp pra usar no polling depois
+echo "$RESP" | python3 -c "
+import sys, json
+d = json.loads(sys.stdin.read())
+print(d['device_code'])
+" > /tmp/gh_device_code.txt
+```
+
+**Passo 4 — Entrega URL + código no chat (no formato exato abaixo):**
+
+> "Beleza! Pra autorizar tua conta GitHub, faz o seguinte:
+>
+> 1. Abre essa URL no navegador: **`<VERIFICATION_URI>`** (geralmente `https://github.com/login/device`)
+> 2. Cola esse código de 8 dígitos: **`<USER_CODE>`** (formato `XXXX-XXXX`)
+> 3. ⚠️ Confirma que tá logado na conta `<gh_username_alvo>` (se tiver outra logada, faz logout antes ou usa janela anônima — senão vai autorizar a conta errada).
+> 4. Autoriza os scopes que ele pedir (repo, gist, workflow).
+> 5. Quando aparecer 'Device activated', volta aqui e fala 'feito'."
+
+**Passo 5 — Quando aluno disser "feito" / "pronto", troca o device code por token:**
+
+```bash
+DEVICE_CODE=$(cat /tmp/gh_device_code.txt)
+
+RESP=$(curl -s -X POST https://github.com/login/oauth/access_token \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d "{\"client_id\":\"178c6fc778ccc68e1d6a\",\"device_code\":\"${DEVICE_CODE}\",\"grant_type\":\"urn:ietf:params:oauth:grant-type:device_code\"}")
+
+TOKEN=$(echo "$RESP" | python3 -c "
+import sys, json
+d = json.loads(sys.stdin.read())
+print(d.get('access_token', ''))
+")
+
+if [ -z "$TOKEN" ]; then
+  echo "ERRO ao obter token:"
+  echo "$RESP"
+  exit 1
+fi
+
+echo "TOKEN_OK"
+
+# Autentica o gh CLI com o token
+echo "$TOKEN" | gh auth login --hostname github.com --git-protocol https --with-token
+
+# Se aluno passou um username alvo (multi-conta), faz switch pra essa conta
+gh auth switch --hostname github.com --user <gh_username_alvo> 2>&1 || true
+
+# Confirma
+gh auth status 2>&1 | head -20
+echo "---"
 gh api user --jq .login
+
+# Limpa o arquivo temp
+rm -f /tmp/gh_device_code.txt
 ```
 
-Mostra: "Conectado como `<username>` ✓"
+Interpreta o resultado:
+- `authorization_pending` no JSON → aluno ainda não clicou Authorize. Pede pra completar e roda Passo 5 de novo.
+- `expired_token` → expirou (15 min). Volta pro Passo 3 (gera novo code).
+- `access_denied` → aluno negou. Pergunta se quer tentar de novo.
+- `TOKEN_OK` + `gh api user --jq .login` retorna o `<gh_username_alvo>` → sucesso.
+
+Mostra: "Conectado como `<username>` ✓" e segue pro 1.5.
 
 #### 1.5 — Cria repo privado e push inicial
 
