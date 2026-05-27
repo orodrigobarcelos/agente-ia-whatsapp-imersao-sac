@@ -369,7 +369,7 @@ Cada pergunta cobre um bloco do system prompt — identidade, contexto, missão,
 
 1. **Identidade** — Como seu agente vai se chamar, e que tom ele tem: formal, neutro ou informal? (ex: "Lia", bem informal)
 2. **Negócio e cliente** — Sobre o que é seu negócio, e quem é o cliente típico que vai falar com ele? (perfil e principal dor)
-3. **Missão** — Qual o objetivo principal do agente (tirar dúvida / qualificar lead / agendar / vender), e o que ele faz quando não souber responder algo? (chama humano, pede pra esperar, etc.)
+3. **Missão** — Qual o objetivo principal do agente (tirar dúvida / qualificar lead / agendar / vender)?
 4. **Limites** — Tem alguma regra inegociável ou algo que ele **NUNCA** pode fazer? (ex: nunca falar preço, nunca prometer prazo)
 5. **Conhecimento** — Quais perguntas frequentes ou informações ele já deve saber responder de cara? (produtos, horários, preços, como funciona)
 
