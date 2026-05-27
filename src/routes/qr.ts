@@ -3,6 +3,12 @@ import { env } from '../config/env.js';
 import { getEvolutionClient } from '../lib/evolution.js';
 import { logger } from '../lib/logger.js';
 
+// Lock module-level: enquanto um request de pairing-code está em curso,
+// o /qr/image retorna 'busy' pra evitar que o polling do frontend chame
+// connectInstance sem number e bagunce o estado do Baileys durante o
+// logout + reconnect com number.
+let pairingInFlight = false;
+
 export async function qrRoutes(app: FastifyInstance) {
   app.get('/qr', async (_req, reply) => {
     reply.header('Content-Type', 'text/html; charset=utf-8');
@@ -24,6 +30,11 @@ export async function qrRoutes(app: FastifyInstance) {
   });
 
   app.get('/qr/image', async (_req, reply) => {
+    // Defesa: se pairing-code está em curso, NÃO chama connectInstance.
+    // Isso evita race que regenera QR durante o logout + wait do pairing.
+    if (pairingInFlight) {
+      return reply.send({ base64: '', code: null, pairingCode: null, busy: true });
+    }
     try {
       const evolution = getEvolutionClient();
       const result = await evolution.connectInstance(env.EVOLUTION_INSTANCE);
@@ -58,18 +69,41 @@ export async function qrRoutes(app: FastifyInstance) {
         return reply.send({ alreadyConnected: true });
       }
 
-      // Logout reseta a sessão Baileys: sem isso, a instância presa no
-      // modo QR devolve QR de novo em vez do código de pareamento.
-      await evolution.logoutInstance(env.EVOLUTION_INSTANCE);
-      await new Promise((r) => setTimeout(r, 3_000));
+      // Lock: bloqueia /qr/image enquanto o pairing está em curso, pra
+      // evitar race que regenera QR durante o logout + wait.
+      pairingInFlight = true;
+      try {
+        // Logout reseta a sessão Baileys: sem isso, a instância presa no
+        // modo QR devolve QR de novo em vez do código de pareamento.
+        await evolution.logoutInstance(env.EVOLUTION_INSTANCE);
+        await new Promise((r) => setTimeout(r, 5_000));
 
-      const result = await evolution.connectInstance(env.EVOLUTION_INSTANCE, number);
-      const pairingCode = result.pairingCode ?? null;
-      if (!pairingCode) {
-        logger.warn({ number }, 'pairing code came back empty');
-        return reply.code(502).send({ error: 'no_pairing_code' });
+        let result = await evolution.connectInstance(env.EVOLUTION_INSTANCE, number);
+        let pairingCode = result.pairingCode ?? null;
+
+        // Às vezes o 1º connect ainda devolve QR (base64) porque o Baileys
+        // não terminou de resetar. Espera mais e tenta uma vez.
+        if (!pairingCode) {
+          logger.info(
+            { number, firstAttempt: result },
+            'pairing 1st attempt empty, retrying',
+          );
+          await new Promise((r) => setTimeout(r, 4_000));
+          result = await evolution.connectInstance(env.EVOLUTION_INSTANCE, number);
+          pairingCode = result.pairingCode ?? null;
+        }
+
+        if (!pairingCode) {
+          logger.warn(
+            { number, evolutionResponse: result },
+            'pairing code came back empty',
+          );
+          return reply.code(502).send({ error: 'no_pairing_code' });
+        }
+        return reply.send({ pairingCode });
+      } finally {
+        pairingInFlight = false;
       }
-      return reply.send({ pairingCode });
     } catch (err) {
       logger.warn(
         { err: err instanceof Error ? err.message : String(err) },
@@ -273,13 +307,18 @@ function renderQrPage(instanceName: string): string {
       pairBtn.disabled = true;
       pairBtn.textContent = 'Gerando…';
       pairResultEl.hidden = true;
+      // Para o polling de /qr/image ANTES do fetch — o backend tem
+      // que fazer logout+reconnect com o number e o polling em paralelo
+      // regenera o QR no meio do processo, fazendo o pairingCode vir vazio.
+      pairingMode = true;
+      setQrPlaceholder('gerando código de pareamento…');
       try {
         const r = await fetch('/qr/pairing-code?number=' + encodeURIComponent(number));
         const data = await r.json();
         if (data.alreadyConnected) {
+          pairingMode = false;
           showPairError('Esse agente já está conectado.');
         } else if (data.pairingCode) {
-          pairingMode = true;
           const c = data.pairingCode;
           const pretty = c.length === 8 ? c.slice(0, 4) + '-' + c.slice(4) : c;
           pairResultEl.hidden = false;
@@ -296,11 +335,14 @@ function renderQrPage(instanceName: string): string {
             'padding:20px;text-align:center">Use o código de pareamento ' +
             'abaixo 👇</div>';
         } else if (data.error === 'invalid_number') {
+          pairingMode = false;
           showPairError('Número inválido. Use DDI+DDD, só números.');
         } else {
+          pairingMode = false;
           showPairError('Não consegui gerar o código agora. Tente de novo em 1 min.');
         }
       } catch (e) {
+        pairingMode = false;
         showPairError('Erro de conexão. Tente de novo.');
       } finally {
         pairBtn.disabled = false;
