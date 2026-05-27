@@ -282,15 +282,24 @@ Quando ele colar a URL (deve começar com `postgresql://postgres:`):
    - **NÃO tem `@:/`** (host/porta vazios = TCP Proxy não provisionou direito — peça pro aluno aguardar 30s e copiar de novo)
    - Se inválida: peça de novo.
 
-2. Crie `.env.local` com (parcial, só o DATABASE_URL por enquanto):
+2. **Normaliza SSL na URL ANTES de salvar.** O Postgres do Railway usa certificado **self-signed**, então a connection string precisa terminar com `?sslmode=no-verify` (não `sslmode=require`, não `sslmode=disable`). Sem isso, o MCP Postgres falha com `self-signed certificate in certificate chain` quando o Claude tentar conectar.
+
+   Aplique essa transformação na URL colada pelo aluno:
+   - Se a URL **não tem** `?sslmode=...` no final → adiciona `?sslmode=no-verify`
+   - Se a URL **tem** `?sslmode=require` (ou outro valor) → substitui por `?sslmode=no-verify`
+   - Se já vier com `?sslmode=no-verify` → mantém
+
+   Guarde o resultado como `<DATABASE_URL_NORMALIZADA>` — é o que vai pros 2 arquivos abaixo (`.env.local` e `.mcp.json`) **e** pro Magic Prompt #2 (Railway service do agente também precisa dessa connection string com `sslmode=no-verify`).
+
+3. Crie `.env.local` com (parcial, só o DATABASE_URL por enquanto):
    ```
-   DATABASE_URL=<URL_QUE_ELE_COLOU>
+   DATABASE_URL=<DATABASE_URL_NORMALIZADA>
    AGENT_URL=
    ```
 
-3. Crie `.mcp.json` (sobrescrevendo qualquer `.example`) com a URL substituída no campo `--connection-string`.
+4. Crie `.mcp.json` (sobrescrevendo qualquer `.example`) com `<DATABASE_URL_NORMALIZADA>` no campo `--connection-string`.
 
-4. Leia `PROMPT-DEPLOY-2.md` e **substitua os 3 placeholders**:
+5. Leia `PROMPT-DEPLOY-2.md` e **substitua os 3 placeholders**:
    - `__GITHUB_USERNAME__` → `<username>` puro (do Passo 1.5, ex: `aularodrigobarcelos`)
    - `__GITHUB_REPO__` → `<username>/<repo_name>` (do Passo 1.5)
    - `__OPENAI_KEY__` → key do Passo 2
@@ -299,7 +308,7 @@ Quando ele colar a URL (deve começar com `postgresql://postgres:`):
 
    `__GITHUB_USERNAME__` é importante: o Prompt #2 usa pra Chrome agente verificar que o popup do GitHub Authorize tá com a conta certa antes de autorizar (evita "Bad credentials" caso aluno tenha múltiplas contas GitHub no navegador).
 
-5. Entrega:
+6. Entrega:
 
    > "Salvei a URL do Postgres. Agora copia esse SEGUNDO prompt e cola no MESMO chat do Claude for Chrome (continua a conversa anterior, NÃO abre uma nova). Esse prompt cria o service do Agente puxando do teu repo GitHub:"
    >
@@ -348,8 +357,9 @@ Quando ele colar a URL do Agente (deve começar com `https://` e terminar em `.r
 Quando o aluno disser "pronto" / "voltei" / similar:
 
 1. Verifique conexão MCP rodando: `SELECT 1 FROM agent_configs LIMIT 1` via MCP.
-2. Se falhar: oriente "feche e abra de novo, às vezes demora 1 vez extra" ou "confira se a URL tem `sslmode=require` no final".
-3. Se OK: passa pro Passo 8.
+2. Se falhar com `self-signed certificate in certificate chain`: a URL em `.mcp.json` e `.env.local` não tá com `sslmode=no-verify`. Corrija ambos os arquivos pra terminar com `?sslmode=no-verify` (não `sslmode=require` — cert do Postgres Railway é self-signed) e peça pro aluno fechar e abrir o Claude Code de novo.
+3. Se falhar com outro erro (timeout, connection refused): peça pra fechar e abrir mais uma vez ("às vezes demora 1 tentativa extra"). Se persistir, valida que `DATABASE_URL` tem host/porta válidos (não tem `@:/`).
+4. Se OK: passa pro Passo 8.
 
 ### Passo 8 — Entrevista (5 perguntas)
 
