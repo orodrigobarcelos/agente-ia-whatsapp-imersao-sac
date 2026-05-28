@@ -25,8 +25,11 @@
  *    código ou use callbacks ANÔNIMOS em `.map`/`.filter`/`.some`.
  *
  * 3. NÃO simule digitação em autocomplete. Vá DIRETO na URL de busca do
- *    site (`/busca?q=...`) quando ela existir — `page.fill`/`page.type`
- *    quase nunca disparam o dropdown de React sob automação.
+ *    site (`/busca?q=...`) quando ela existir. Dois motivos: `page.fill`/
+ *    `page.type` quase nunca disparam o dropdown React sob automação E a
+ *    home costuma cair em captcha. Ex. real: no Reclame Aqui use
+ *    `/busca/?q=<empresa>` (funciona) — `/home/E/` dispara o "confirme
+ *    que é humano".
  *
  * 4. NÃO confie em `waitUntil`. Espere por um MARCADOR de conteúdo real
  *    (um texto que só aparece quando a página carregou) com
@@ -116,7 +119,8 @@ registerTool({
       });
       const page = await context.newPage();
 
-      // 1) Vá DIRETO na URL de busca (regra 3) — não simule autocomplete.
+      // 1) Vá DIRETO na URL de busca (regra 3) — não simule autocomplete e
+      //    não passe pela home (que costuma cair em captcha).
       const searchUrl = `https://example.com/busca/?q=${encodeURIComponent(termo)}`;
       await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: 30_000 });
 
