@@ -141,13 +141,24 @@ registerTool({
 
 ## 4. Preço de produto via scraping (Playwright)
 
+> ℹ️ A fonte canônica e mais completa é `src/tools/custom/_TEMPLATE-playwright.ts.example`
+> — ele tem TODAS as defesas comentadas. Use ele como base ao criar tools de scraping.
+
 **Caso:** loja sem API. Agente abre o site, navega até o produto, extrai preço.
 
 **Aluno diz:** *"quero uma skill que consulta o preço do produto X no site Y"*
 
 ```typescript
-import { chromium } from 'playwright';
+/// <reference lib="dom" />
+// @ts-ignore — playwright-extra não publica types completas
+import { chromium } from 'playwright-extra';
+// @ts-ignore — plugin sem types oficiais
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { registerTool } from '../registry.js';
+
+// Stealth disfarça sinais de automação e passa pelo Cloudflare Turnstile
+// na maioria dos sites. Registrado uma vez no boot do módulo.
+chromium.use(StealthPlugin());
 
 registerTool({
   name: 'preco_produto_concorrente',
@@ -162,25 +173,80 @@ registerTool({
     additionalProperties: false,
   },
   handler: async ({ codigo }) => {
+    if (typeof codigo !== 'string' || codigo.trim().length === 0) {
+      return { ok: false, erro: 'parametro_invalido', detalhe: 'código vazio' };
+    }
+    const sku = codigo.trim();
+
     const browser = await chromium.launch({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
     try {
-      const page = await browser.newPage();
-      await page.goto(
-        `https://www.concorrente.com/produto/${codigo}`,
-        { waitUntil: 'domcontentloaded', timeout: 30_000 },
-      );
-      await page.waitForSelector('.preco-atual', { timeout: 10_000 });
-      const precoTexto = await page.textContent('.preco-atual');
+      const context = await browser.newContext({
+        userAgent:
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 ' +
+          '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        locale: 'pt-BR',
+      });
+      const page = await context.newPage();
+      await page.goto(`https://www.concorrente.com/produto/${sku}`, {
+        waitUntil: 'domcontentloaded',
+        timeout: 30_000,
+      });
+
+      // Espera o MARCADOR de conteúdo real (o preço), não só waitUntil.
+      // Trata a splash "Um momento..." do Cloudflare com um reload de fallback.
+      let carregou = false;
+      try {
+        await page.waitForFunction(
+          () => document.querySelector('.preco-atual') !== null,
+          { timeout: 20_000 },
+        );
+        carregou = true;
+      } catch {
+        const txt = await page.evaluate(() => document.body.innerText);
+        if (/um momento|carregando/i.test(txt)) {
+          await page.reload({ waitUntil: 'domcontentloaded', timeout: 30_000 });
+          try {
+            await page.waitForFunction(
+              () => document.querySelector('.preco-atual') !== null,
+              { timeout: 20_000 },
+            );
+            carregou = true;
+          } catch {
+            /* cai no erro estruturado abaixo */
+          }
+        }
+      }
+
+      if (!carregou) {
+        console.log('[preco_produto_concorrente] não carregou:', sku);
+        return {
+          ok: false,
+          erro: 'pagina_nao_carregou',
+          detalhe: `Não consegui carregar o produto ${sku}. Confere o código ou tenta de novo.`,
+        };
+      }
+
+      const precoTexto = (await page.textContent('.preco-atual'))?.trim() ?? null;
       const disponivel = await page.isVisible('.botao-comprar');
-      return {
-        preco: precoTexto?.trim() ?? null,
-        disponivel,
-      };
+
+      // Valida ANTES de retornar — preço vazio = falha explícita, não dado errado.
+      if (!precoTexto) {
+        console.log('[preco_produto_concorrente] preço ausente:', sku);
+        return {
+          ok: false,
+          erro: 'preco_indisponivel',
+          detalhe: `Achei a página do produto ${sku} mas não li o preço. O site pode ter mudado de layout.`,
+        };
+      }
+
+      const resultado = { ok: true, codigo: sku, preco: precoTexto, disponivel };
+      console.log('[preco_produto_concorrente] extraiu:', JSON.stringify(resultado));
+      return resultado;
     } finally {
-      await browser.close();
+      await browser.close(); // SEMPRE fecha — Chromium come ~200MB de RAM
     }
   },
 });

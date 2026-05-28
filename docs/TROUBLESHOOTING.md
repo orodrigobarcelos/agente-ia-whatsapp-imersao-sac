@@ -312,7 +312,10 @@ Enquanto pausada, o agente recebe e armazena mensagens (em `chat_messages`), mas
 
 **Causas comuns:**
 
-1. **Site protegido por Cloudflare/captcha.** Playwright headless é detectável. Considera usar API oficial se existir, ou serviço externo de scraping (Browserless, Browserbase).
+1. **Site protegido por Cloudflare/captcha** (tela "Confirme que é humano" ou aba "Um momento…").
+   - **1ª defesa — já vem no template:** o `_TEMPLATE-playwright.ts.example` importa de `playwright-extra` + `puppeteer-extra-plugin-stealth` e chama `chromium.use(StealthPlugin())`. O stealth disfarça os sinais de automação (`navigator.webdriver`, fingerprint, etc.) e passa pelo Cloudflare Turnstile na MAIORIA dos casos. Garanta que a tool importa de `playwright-extra` (não de `playwright` puro) e chama `chromium.use(StealthPlugin())`.
+   - A splash "Um momento…" faz parte do Cloudflare — trate com `page.waitForFunction(...)` por um marcador de conteúdo real + reload de fallback (regra 4 do template), não com `waitForSelector` simples que resolve cedo demais.
+   - **Só se o stealth não bastar** (captcha muito agressivo): aí sim considere API oficial do site, se existir, ou serviço externo pago de scraping (Browserless, Browserbase).
 
 2. **Seletor CSS errado.** Site mudou layout. Peça pro Claude Code: *"ajusta o seletor da tool X — site Y tá retornando vazio"*.
 
