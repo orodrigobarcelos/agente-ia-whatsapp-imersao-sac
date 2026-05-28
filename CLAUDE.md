@@ -835,6 +835,20 @@ SET ai_paused = true, paused_at = now(), paused_by = 'manual';
 
 ---
 
+## Quando consultar `docs/TROUBLESHOOTING.md`
+
+Antes de improvisar solução pra erro do aluno, cheque se já está catalogado em `docs/TROUBLESHOOTING.md` (formato Sintoma → Causa → Solução). Cobre:
+
+- **Setup GitHub** — `gh` não instala, auth não abre navegador, push pede senha, repo público por engano, build demorado
+- **Instalação** — MCP Postgres não conecta, achar `DATABASE_PUBLIC_URL`, Evolution↔Postgres, QR não aparece, mensagens não chegam, "aparelho desatualizado"
+- **Uso** — prompt não atualiza (cache 30s), skill ignorada, agente inventando, demora, custo OpenAI subiu, pausar IA pra atender manualmente
+- **Tools (código)** — agente não usa a tool, schema inválido (strict mode), Playwright timeout/Cloudflare, latência da tool
+- **Reset** — apagar tudo e começar do zero, trocar número do WhatsApp
+
+Leia o arquivo pro passo-a-passo de cada caso. Se o erro não estiver lá, aí resolve direto.
+
+---
+
 ## Tabelas do banco — referência rápida
 
 | Tabela | O que tem |
