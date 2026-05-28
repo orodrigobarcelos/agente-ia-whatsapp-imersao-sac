@@ -3,40 +3,90 @@
  * TEMPLATE de tool com Playwright (browser automation).
  *
  * Esse arquivo NÃO é importado automaticamente (extensão .example).
- * O Claude Code usa esse template como base quando o aluno pede
- * uma tool que precisa abrir um site, clicar, extrair info, etc.
+ * O Claude Code usa esse template como base quando o aluno pede uma
+ * tool que precisa abrir um site, clicar, extrair info, etc.
  *
- * IMPORTANTE: a primeira linha (`/// <reference lib="dom" />`) é
- * OBRIGATÓRIA. Ela faz o TypeScript reconhecer `document`, `window`
- * e outros tipos de DOM dentro de callbacks de `page.evaluate(...)`,
- * que rodam DENTRO do navegador (não no Node). Sem essa linha, o
- * build da Railway falha com `error TS2584: Cannot find name
- * 'document'`. Mantenha essa linha em TODA tool que usar
- * `page.evaluate()` ou similar.
+ * Esse template já vem com TODAS as defesas que a prática mostrou serem
+ * necessárias pra scraping de sites grandes (Reclame Aqui, Mercado Livre,
+ * OLX, etc.). Cada bloco tem um comentário explicando o "por quê" — não
+ * remova as defesas sem entender o que elas resolvem.
+ *
+ * ─── REGRAS QUE EVITAM OS ERROS MAIS COMUNS ──────────────────────────
+ *
+ * 1. PRIMEIRA LINHA OBRIGATÓRIA: `/// <reference lib="dom" />`. Faz o
+ *    TypeScript reconhecer `document`, `window`, etc. dentro de
+ *    `page.evaluate(...)` (que roda no navegador, não no Node). Sem ela
+ *    o build falha com `error TS2584: Cannot find name 'document'`.
+ *
+ * 2. NUNCA declare função NOMEADA dentro de `page.evaluate(...)`. Ou seja,
+ *    nada de `const limpar = (s) => ...; limpar(x)` lá dentro. O esbuild
+ *    (tsx) envolve funções nomeadas num helper `__name` que NÃO existe no
+ *    browser → crash `ReferenceError: __name is not defined`. Inline o
+ *    código ou use callbacks ANÔNIMOS em `.map`/`.filter`/`.some`.
+ *
+ * 3. NÃO simule digitação em autocomplete. Vá DIRETO na URL de busca do
+ *    site (`/busca?q=...`) quando ela existir — `page.fill`/`page.type`
+ *    quase nunca disparam o dropdown de React sob automação.
+ *
+ * 4. NÃO confie em `waitUntil`. Espere por um MARCADOR de conteúdo real
+ *    (um texto que só aparece quando a página carregou) com
+ *    `page.waitForFunction(...)`. Sites com Cloudflare mostram uma
+ *    splash "Um momento..." que resolve `domcontentloaded` cedo demais.
+ *
+ * 5. Conteúdo "abaixo da fold" (lazy load) só carrega ao rolar a página.
+ *    Faça `window.scrollTo(...)` antes de extrair.
+ *
+ * 6. FILTRE por slug/URL, não por layout (classes CSS, posição). URL
+ *    muda menos que CSS e ignora anúncios naturalmente.
+ *
+ * 7. VALIDE antes de retornar. Confira que o item extraído bate com o que
+ *    o cliente pediu E que os dados numéricos vieram. Se não bater,
+ *    retorne `{ ok: false, erro, detalhe }` — tool falhando explícito é
+ *    MELHOR que tool devolvendo dado errado (o agente repetiria como fato).
+ *
+ * 8. SEMPRE `console.log` o resultado antes do return — aparece no Deploy
+ *    Logs da Railway e salva sua vida ao debugar em produção.
  *
  * Padrão de uso:
  *   1. Claude Code copia esse arquivo pra src/tools/custom/<nome>.ts
  *   2. Edita name, description, parameters e a lógica do handler
  *   3. Adiciona `import './custom/<nome>.js';` em ../index.ts
- *   4. Testa local: `npx tsx src/tools/custom/<nome>.ts --test`
+ *   4. Testa local (se tiver Node): `npx tsx` num wrapper, depois demo visual
  *   5. Comita e dá push pra Railway redeployar
  *
  * Limite de tempo: 5 minutos (timeout do runner).
  */
-import { chromium } from 'playwright';
+// @ts-ignore — playwright-extra não publica types completas, mas o objeto
+// chromium é o mesmo do playwright runtime, com .use() pra plugins.
+import { chromium } from 'playwright-extra';
+// @ts-ignore — plugin sem types oficiais
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import { registerTool } from '../registry.js';
+
+// Stealth disfarça os sinais óbvios de automação (navigator.webdriver,
+// fingerprint de canvas/WebGL, etc.) e ajuda a passar do Cloudflare
+// Turnstile. Registrado UMA vez no boot do módulo. Mantenha sempre —
+// custa quase nada e a maioria dos sites grandes bloqueia bot sem isso.
+chromium.use(StealthPlugin());
+
+// Helper defensivo: pega um grupo de regex sem quebrar se vier null.
+// Use SEMPRE que acessar match[n] — evita `Object is possibly undefined`
+// e crash em runtime. (Roda no Node; NÃO use dentro de page.evaluate.)
+function safeGroup(match: RegExpMatchArray | null, idx: number): string {
+  return match?.[idx] ?? '';
+}
 
 registerTool({
   name: 'EXEMPLO_RENOMEIE_ME',
   description:
-    'Use quando o cliente [DESCREVA O CASO]. ' +
+    'Use sempre que o cliente [DESCREVA O GATILHO — ex.: perguntar sobre X]. ' +
     'Retorna [DESCREVA O QUE A TOOL DEVOLVE].',
   parameters: {
     type: 'object',
     properties: {
       query: {
         type: 'string',
-        description: 'Texto/código que será buscado no site',
+        description: 'Texto/nome que o cliente quer buscar no site',
       },
     },
     // OBRIGATÓRIO em strict mode: TODAS as keys de properties listadas aqui
@@ -45,9 +95,10 @@ registerTool({
     additionalProperties: false,
   },
   handler: async ({ query }) => {
-    if (typeof query !== 'string') {
-      throw new Error('query deve ser string');
+    if (typeof query !== 'string' || query.trim().length === 0) {
+      return { ok: false, erro: 'parametro_invalido', detalhe: 'query vazia' };
     }
+    const termo = query.trim();
 
     // headless=true em produção. args ajudam em containers Docker.
     const browser = await chromium.launch({
@@ -60,25 +111,85 @@ registerTool({
         userAgent:
           'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 ' +
           '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        viewport: { width: 1366, height: 900 },
+        locale: 'pt-BR',
       });
       const page = await context.newPage();
 
-      await page.goto(
-        `https://example.com/buscar?q=${encodeURIComponent(query)}`,
-        {
-          waitUntil: 'domcontentloaded',
-          timeout: 30_000,
-        },
-      );
+      // 1) Vá DIRETO na URL de busca (regra 3) — não simule autocomplete.
+      const searchUrl = `https://example.com/busca/?q=${encodeURIComponent(termo)}`;
+      await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: 30_000 });
 
-      // Espera o elemento alvo aparecer (evita race condition com JS-heavy sites)
-      await page.waitForSelector('.resultado', { timeout: 10_000 });
-      const valor = await page.textContent('.resultado');
+      // 2) Espere por um MARCADOR de conteúdo real (regra 4), não waitUntil.
+      //    Troque o seletor/texto pelo que indica "resultado carregou".
+      let carregou = false;
+      try {
+        await page.waitForFunction(
+          () => document.querySelectorAll('a[href*="/item/"]').length > 0,
+          { timeout: 20_000 },
+        );
+        carregou = true;
+      } catch {
+        // Splash "Um momento..."? tenta reload uma vez.
+        const txt = await page.evaluate(() => document.body.innerText);
+        if (/um momento|carregando/i.test(txt)) {
+          await page.reload({ waitUntil: 'domcontentloaded', timeout: 30_000 });
+          try {
+            await page.waitForFunction(
+              () => document.querySelectorAll('a[href*="/item/"]').length > 0,
+              { timeout: 20_000 },
+            );
+            carregou = true;
+          } catch {
+            /* cai no erro estruturado abaixo */
+          }
+        }
+      }
 
-      return {
-        encontrado: valor !== null,
-        valor: valor?.trim() ?? null,
-      };
+      if (!carregou) {
+        console.log('[EXEMPLO_RENOMEIE_ME] página não carregou:', termo);
+        return {
+          ok: false,
+          erro: 'pagina_nao_carregou',
+          detalhe: `Não consegui carregar os resultados de "${termo}". Tenta de novo daqui a pouco.`,
+        };
+      }
+
+      // 3) Conteúdo abaixo da fold? role pra carregar (regra 5).
+      await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight * 0.7));
+      await page.waitForTimeout(1200);
+
+      // 4) Filtre por slug/URL (regra 6). Callback ANÔNIMO inline (regra 2).
+      const palavras = termo.toLowerCase().split(/\s+/).filter((w) => w.length >= 3);
+      const dados = await page.evaluate((palavras: string[]) => {
+        const links = Array.from(
+          document.querySelectorAll('a[href*="/item/"]'),
+        ) as HTMLAnchorElement[];
+        for (const link of links) {
+          const href = link.getAttribute('href') || '';
+          const m = href.match(/\/item\/([^\/?#]+)/);
+          if (!m || !m[1]) continue;
+          const slug = m[1].toLowerCase();
+          if (!palavras.some((p) => slug.includes(p))) continue; // pula anúncio
+          // ... extraia aqui os campos que você quer do card/página ...
+          return { slug, valor: (link.textContent || '').trim() };
+        }
+        return null;
+      }, palavras);
+
+      // 5) VALIDE antes de retornar (regra 7).
+      if (!dados) {
+        console.log('[EXEMPLO_RENOMEIE_ME] nada bateu com:', termo);
+        return {
+          ok: false,
+          erro: 'nao_encontrado',
+          detalhe: `Não encontrei "${termo}". Confere a grafia ou tenta o nome completo.`,
+        };
+      }
+
+      const resultado = { ok: true, termo, ...dados };
+      console.log('[EXEMPLO_RENOMEIE_ME] extraiu:', JSON.stringify(resultado));
+      return resultado; // regra 8: logado antes de retornar
     } finally {
       // SEMPRE fecha o browser (mesmo em erro) — Chromium come ~200MB de RAM
       await browser.close();

@@ -545,6 +545,18 @@ Scraping é frágil. Site pode mudar ordem, esconder filtros, mostrar A/B test, 
 
 6. **Adicione fallback explícito quando filtro falhar.** Se o filtro "SUV" não existe no site, retorne `{ ok: false, erro: 'filtro não disponível' }` em vez de pegar resultado errado. **Tool falhando explicitamente é MELHOR que tool dando dado errado.**
 
+##### Mecânica técnica — já vem resolvida no template, NÃO recrie do zero
+
+O `_TEMPLATE-playwright.ts.example` já incorpora as defesas que a prática mostrou serem necessárias em sites grandes (Reclame Aqui, Mercado Livre, OLX). **Leia os comentários do template antes de editar** — eles explicam o porquê de cada uma. Resumo do que NÃO pode faltar:
+
+- **Stealth ligado** (`playwright-extra` + `puppeteer-extra-plugin-stealth`, com `chromium.use(StealthPlugin())`). Sites grandes ativam anti-bot (Cloudflare Turnstile) por padrão; Playwright "puro" trava no CAPTCHA. As deps já estão no `package.json`.
+- **Vá DIRETO na URL de busca** (`/busca?q=...`) em vez de digitar no autocomplete — `page.fill`/`page.type` quase nunca disparam o dropdown React sob automação.
+- **Espere por MARCADOR de conteúdo** com `page.waitForFunction(() => /texto que só existe quando carregou/.test(document.body.innerText))`, NÃO por `waitUntil`. Sites com Cloudflare mostram splash "Um momento..." que resolve cedo demais. Inclua um reload de fallback.
+- **Role a página** (`window.scrollTo`) antes de extrair conteúdo abaixo da fold (lazy load).
+- **NUNCA declare função NOMEADA dentro de `page.evaluate(...)`** (ex.: `const limpar = (s) => ...`). O esbuild/tsx envolve em `__name`, que não existe no browser → `ReferenceError: __name is not defined`. Inline o código ou use callbacks anônimos.
+- **Cascata de fallback pra metadado importante** (nome da empresa: `og:title` → `<title>` → `<h1>` não-URL → slug da URL). Nunca confie num único seletor.
+- **Imports de `playwright-extra` precisam de `// @ts-ignore`** na linha de cima (o pacote não publica types completas). Já está no template.
+
 Sempre instrua o aluno: "*scraping é caça e pesca — site pode mudar, valor pode vir errado. Vamos validar antes de subir, e o agente vai te avisar quando der ruim em vez de inventar preço.*"
 
 #### 4. Strict mode — regras dos `parameters`
@@ -564,6 +576,18 @@ import './custom/<nome>.js';
 ```
 
 #### 6. Testa local (se Node disponível)
+
+**6.0 — Typecheck PRIMEIRO (quando tem Node + deps).** Antes de rodar a tool, roda o MESMO compilador estrito que a Railway usa no build — pega erro de tipo ANTES do push, evitando build vermelho na cara do aluno:
+
+```bash
+npm run typecheck
+```
+
+Se acusar `error TSxxxx`, corrige no arquivo da tool e roda de novo até zerar — se passa aqui, passa na Railway. Se `npx tsx` (teste funcional abaixo) roda, esse typecheck também roda (ambos precisam de `node_modules`).
+
+**Sem Node** (ou sem `node_modules`): pula o typecheck e confia no template, que já vem defensivo. Mas escreve com cuidado redobrado — use `safeGroup(match, n)` ou `match?.[n] ?? ''` pra TODO acesso a grupo de regex/índice de array. (O flag `noUncheckedIndexedAccess` está desligado no `tsconfig`, então acesso por índice não quebra o build — mas ainda pode dar `undefined` em runtime se você não tratar.)
+
+**6.1 — Teste funcional:**
 
 ```bash
 cat > /tmp/test-<nome>.mjs <<'EOF'
@@ -613,7 +637,32 @@ Aluno aprova o que viu → vai pro Passo 7. Aluno achou estranho/errado (clicou 
 
 **Tools sem Playwright (só fetch HTTP):** pula esse passo. Não tem o que mostrar visualmente.
 
-#### 7. Commit + push
+#### 7. Dá permissão pro agente usar a tool (OBRIGATÓRIO — não pule)
+
+⚠️ **Criar a tool NÃO basta.** Se o system prompt do agente é restritivo (ex.: "você é assistente da empresa X, foco em tirar dúvidas sobre o produto"), o modelo interpreta que perguntas sobre "reputação de uma loja qualquer" estão fora do escopo e **recusa usar a ferramenta** — mesmo tendo ela disponível. Ferramenta + prompt andam de mãos dadas.
+
+Por isso, depois de registrar a tool, **atualize o system prompt** pra mencioná-la e dar permissão explícita de uso:
+
+1. Lê o prompt atual: `SELECT system_prompt FROM agent_configs WHERE agent_type = 'default'`
+2. Adiciona (ou complementa) uma seção tipo:
+   ```markdown
+   # Ferramentas que você tem
+
+   Você tem a ferramenta `<nome>` — use ela SEMPRE que o cliente
+   [DESCREVA O GATILHO, ex.: "perguntar sobre reputação, nota,
+   confiabilidade ou reclamações de QUALQUER empresa"]. Não recuse
+   essas perguntas mesmo que pareçam fora do assunto do negócio —
+   chama a ferramenta, espera o resultado (uns 10s) e responde com os
+   dados de forma direta e amigável. Se a ferramenta retornar erro
+   (`ok: false`), explica honestamente que não conseguiu — NUNCA invente
+   o dado.
+   ```
+3. Mostra o diff pro aluno e, com aprovação: `UPDATE agent_configs SET system_prompt = $1 WHERE agent_type = 'default'`
+4. Atualiza `prompt.md` local pra manter o espelho.
+
+Sem esse passo, o aluno cria a tool, testa no WhatsApp, e o agente ignora a ferramenta — frustração garantida.
+
+#### 8. Commit + push
 
 ```bash
 git add src/tools/custom/<nome>.ts src/tools/index.ts
@@ -621,9 +670,9 @@ git commit -m "add tool: <nome>"
 git push
 ```
 
-#### 8. Avisa o aluno
+#### 9. Avisa o aluno
 
-> "Tool '<nome>' subiu pro GitHub. Railway tá rebuildando — em ~5 min teu agente vai poder usar. Te aviso se o build falhar; caso contrário, é só testar no WhatsApp daqui a 5 min."
+> "Tool '<nome>' subiu pro GitHub e já dei permissão pro agente usar ela. Railway tá rebuildando — em ~5 min teu agente vai poder usar. Te aviso se o build falhar; caso contrário, é só testar no WhatsApp daqui a 5 min."
 
 ### Listar skills ativas (texto + código)
 
